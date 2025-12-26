@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Authentication</title>
+</head>
+<body>
+    <h1>Test Authentication</h1>
+    
+    <h2>Test Login</h2>
+    <button onclick="testLogin()">Login as Alice</button>
+    <button onclick="testRegister()">Register New User</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testLogin() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing login...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'alice@college.edu',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    result.textContent += '\n\n✅ LOGIN SUCCESSFUL!\nToken: ' + data.token;
+                }
+            } catch (error) {
+                result.textContent = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function testRegister() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing registration...';
+            
+            const randomEmail = 'test' + Date.now() + '@test.com';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: 'Test User',
+                        email: randomEmail,
+                        password: 'test123'
+                    })
+                });
+                
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    result.textContent += '\n\n✅ REGISTRATION SUCCESSFUL!\nEmail: ' + randomEmail + '\nToken: ' + data.token;
+                }
+            } catch (error) {
+                result.textContent = '❌ Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

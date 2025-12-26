@@ -15,7 +15,7 @@ const users = [
     name: 'Alice Johnson',
     email: 'alice@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
     skills: [],
     badges: [],
     bio: 'Computer Science student who loves sustainability!'
@@ -24,7 +24,7 @@ const users = [
     name: 'Sarah Chen',
     email: 'sarah.chen@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
     skills: ['Basic Soldering', 'Phone Repair', 'Laptop Hardware'],
     badges: ['Tech Wizard', 'Quick Responder'],
     rating: 4.8,
@@ -35,7 +35,7 @@ const users = [
     name: 'Mike Rodriguez',
     email: 'mike.r@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
     skills: ['Sewing & Mending', 'Button Replacement', 'Zipper Repair'],
     badges: ['Clothing Expert', 'Sustainability Champion'],
     rating: 4.9,
@@ -46,7 +46,7 @@ const users = [
     name: 'Jessica Park',
     email: 'j.park@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica',
     skills: ['Woodworking', 'Furniture Assembly', 'Basic Carpentry'],
     badges: ['Furniture Pro', 'Helpful Helper'],
     rating: 4.7,
@@ -57,7 +57,7 @@ const users = [
     name: 'Alex Kim',
     email: 'alex.kim@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
     skills: ['Bicycle Repair', 'Basic Mechanics', 'Tire Replacement'],
     badges: ['Bike Mechanic', 'Community Star'],
     rating: 4.6,
@@ -68,7 +68,7 @@ const users = [
     name: 'Taylor Brown',
     email: 't.brown@college.edu',
     password: 'password123',
-    photoUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=200',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Taylor',
     skills: ['Sewing & Mending', 'Basic Soldering', 'Jewelry Repair'],
     badges: ['Multi-Talented', 'Patient Teacher'],
     rating: 4.9,
@@ -85,8 +85,12 @@ const importData = async () => {
 
     console.log('🗑️  Data Destroyed!');
 
-    // Create users
-    const createdUsers = await User.insertMany(users);
+    // Create users one by one to trigger password hashing
+    const createdUsers = [];
+    for (const userData of users) {
+      const user = await User.create(userData);
+      createdUsers.push(user);
+    }
     console.log('👥 Users Created!');
 
     // Create sample listings using the first user (Alice)

@@ -21,7 +21,7 @@ function SearchBar({ onSearch, placeholder = "Search listings..." }) {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-6 py-4 pr-24 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none shadow-md text-lg"
+          className="w-full px-6 py-4 pr-24 rounded-full border-2 border-gray-300 focus:border-blue-500 focus:outline-none shadow-md text-lg text-gray-800 placeholder-gray-500"
         />
         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-2">
           {searchTerm && (

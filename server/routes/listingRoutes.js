@@ -8,18 +8,24 @@ const {
   updateListing,
   deleteListing,
   addInterestedFixer,
-  getUserListings
+  getUserListings,
+  getInterestedListings,
+  acceptFixer,
+  markListingFixed
 } = require('../controllers/listingController');
 
 // Public routes
 router.get('/', getListings);
 router.get('/:id', getListingById);
 router.get('/user/:userId', getUserListings);
+router.get('/interested/:userId', getInterestedListings);
 
 // Protected routes
 router.post('/', protect, createListing);
 router.put('/:id', protect, updateListing);
 router.delete('/:id', protect, deleteListing);
 router.post('/:id/interest', protect, addInterestedFixer);
+router.post('/:id/accept/:fixerId', protect, acceptFixer);
+router.post('/:id/mark-fixed', protect, markListingFixed);
 
 module.exports = router;

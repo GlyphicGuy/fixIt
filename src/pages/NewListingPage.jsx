@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { createListing } from '../services/listingService';
 
 function NewListingPage() {
   const [formData, setFormData] = useState({
@@ -7,6 +10,20 @@ function NewListingPage() {
     category: 'Tech',
     photoUrl: ''
   });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if not authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -14,20 +31,63 @@ function NewListingPage() {
       ...prev,
       [name]: value
     }));
+    setError(''); // Clear error on input change
   };
 
-  const handleSubmit = (e) => {
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file');
+        return;
+      }
+
+      setPhotoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      setError('');
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview('');
+    setFormData(prev => ({ ...prev, photoUrl: '' }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('New listing:', formData);
-    // TODO: Send to backend when ready
-    alert('Listing posted successfully! (This will connect to backend later)');
-    // Reset form
-    setFormData({
-      title: '',
-      description: '',
-      category: 'Tech',
-      photoUrl: ''
-    });
+    setLoading(true);
+    setError('');
+
+    try {
+      // Use photo preview (base64) if available, otherwise use default
+      const listingData = {
+        ...formData,
+        photoUrl: photoPreview || formData.photoUrl || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400'
+      };
+      
+      await createListing(listingData);
+      alert('Listing posted successfully!');
+      navigate('/'); // Redirect to home page
+    } catch (err) {
+      console.error('Error creating listing:', err);
+      setError(err.response?.data?.message || 'Failed to create listing. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -44,6 +104,13 @@ function NewListingPage() {
         {/* Form Card */}
         <div className="bg-white rounded-lg shadow-md p-8">
           <form onSubmit={handleSubmit}>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
             {/* Title */}
             <div className="mb-6">
               <label htmlFor="title" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -97,32 +164,62 @@ function NewListingPage() {
               </select>
             </div>
 
-            {/* Photo URL */}
+            {/* Photo Upload */}
             <div className="mb-6">
-              <label htmlFor="photoUrl" className="block text-sm font-semibold text-gray-700 mb-2">
-                Photo URL (optional)
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Photo (optional)
               </label>
-              <input
-                type="url"
-                id="photoUrl"
-                name="photoUrl"
-                value={formData.photoUrl}
-                onChange={handleChange}
-                placeholder="https://example.com/photo.jpg"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                Paste a URL to an image of the item that needs fixing
-              </p>
+              
+              {!photoPreview ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition">
+                  <input
+                    type="file"
+                    id="photo"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handlePhotoChange}
+                    className="hidden"
+                  />
+                  <label htmlFor="photo" className="cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="text-gray-600 font-semibold mb-1">Take a photo or upload</p>
+                      <p className="text-sm text-gray-500">Click to open camera or choose from gallery</p>
+                      <p className="text-xs text-gray-400 mt-2">Max size: 5MB</p>
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={photoPreview}
+                    alt="Preview"
+                    className="w-full h-64 object-cover rounded-lg border-2 border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition shadow-lg"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Buttons */}
             <div className="flex space-x-4">
               <button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition"
+                disabled={loading}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Post Listing
+                {loading ? 'Posting...' : 'Post Listing'}
               </button>
               <button
                 type="button"

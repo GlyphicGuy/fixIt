@@ -1,21 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import SkillProfileCard from '../components/SkillProfileCard';
 import SearchBar from '../components/SearchBar';
 import StatsSection from '../components/StatsSection';
 import HowItWorks from '../components/HowItWorks';
-import { mockListings, mockFixers, categories } from '../data/mockData';
+import { mockFixers, categories } from '../data/mockData';
+import { getListings } from '../services/listingService';
+import { getFixers } from '../services/userService';
 
 function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [listings, setListings] = useState([]);
+  const [fixers, setFixers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [listingsData, fixersData] = await Promise.all([
+        getListings({ status: 'open' }),
+        getFixers()
+      ]);
+      setListings(listingsData);
+      setFixers(fixersData);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Failed to load data');
+      // Fallback to mock data if API fails
+      setListings([]);
+      setFixers(mockFixers);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
-  const filteredListings = mockListings
+  const filteredListings = listings
     .filter(listing => selectedCategory === 'All' || listing.category === selectedCategory)
     .filter(listing => 
       searchTerm === '' || 
@@ -39,7 +70,7 @@ function HomePage() {
           
           {/* Search Bar */}
           <div className="mb-8">
-            <SearchBar onSearch={handleSearch} placeholder="Search for repairs (e.g., laptop, bike, clothing)..." />
+            <SearchBar onSearch={handleSearch} placeholder="Search for Repairs (e.g., laptop, bike, clothing)..." />
           </div>
 
           <div className="flex justify-center space-x-4">
@@ -89,21 +120,44 @@ function HomePage() {
           <h3 className="text-xl font-bold text-gray-800 mb-4">
             {selectedCategory === 'All' ? 'All Listings' : `${selectedCategory} Listings`}
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredListings.map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading listings...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              {error}
+            </div>
+          ) : filteredListings.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <p className="text-gray-600">No listings found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredListings.map((listing) => (
+                <ListingCard key={listing._id} listing={listing} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Featured Fixers */}
         <div id="fixers-section">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Fixers 🌟</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockFixers.map((fixer) => (
-              <SkillProfileCard key={fixer.id} fixer={fixer} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <p className="mt-4 text-gray-600">Loading fixers...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {fixers.map((fixer) => (
+                <SkillProfileCard key={fixer._id} fixer={fixer} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* How It Works Section */}

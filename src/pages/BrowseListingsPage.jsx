@@ -1,35 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ListingCard from '../components/ListingCard';
 import SearchBar from '../components/SearchBar';
-import { mockListings, categories } from '../data/mockData';
+import { categories } from '../data/mockData';
+import { getListings } from '../services/listingService';
 
 function BrowseListingsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, open, fixed
   const [sortBy, setSortBy] = useState('newest'); // newest, oldest
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch listings on component mount
+  useEffect(() => {
+    fetchListings();
+  }, []);
+
+  const fetchListings = async () => {
+    try {
+      setLoading(true);
+      const data = await getListings();
+      setListings(data);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching listings:', err);
+      setError('Failed to load listings');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
   // Apply all filters
-  let filteredListings = mockListings
+  let filteredListings = listings
     .filter(listing => selectedCategory === 'All' || listing.category === selectedCategory)
     .filter(listing => 
       searchTerm === '' || 
       listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       listing.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.postedBy.toLowerCase().includes(searchTerm.toLowerCase())
+      (listing.postedBy?.name && listing.postedBy.name.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .filter(listing => statusFilter === 'all' || listing.status === statusFilter);
 
   // Sort listings
   if (sortBy === 'newest') {
-    filteredListings.sort((a, b) => new Date(b.postedDate) - new Date(a.postedDate));
+    filteredListings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } else if (sortBy === 'oldest') {
-    filteredListings.sort((a, b) => new Date(a.postedDate) - new Date(b.postedDate));
+    filteredListings.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   }
 
   return (
@@ -143,44 +166,57 @@ function BrowseListingsPage() {
 
           {/* Main Content - Listings Grid */}
           <div className="lg:col-span-3">
-            {/* Results Header */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">
-                {filteredListings.length} {filteredListings.length === 1 ? 'Listing' : 'Listings'} Found
-              </h2>
-              <Link
-                to="/new-listing"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition"
-              >
-                + Post Listing
-              </Link>
-            </div>
-
-            {/* Listings Grid */}
-            {filteredListings.length === 0 ? (
-              <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">No Listings Found</h3>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your filters or search terms
-                </p>
-                <button
-                  onClick={() => {
-                    setSelectedCategory('All');
-                    setStatusFilter('all');
-                    setSearchTerm('');
-                  }}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-                >
-                  Clear Filters
-                </button>
+            {loading ? (
+              <div className="text-center py-16">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-gray-600">Loading listings...</p>
+              </div>
+            ) : error ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
+                {error}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {filteredListings.map((listing) => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
-              </div>
+              <>
+                {/* Results Header */}
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {filteredListings.length} {filteredListings.length === 1 ? 'Listing' : 'Listings'} Found
+                  </h2>
+                  <Link
+                    to="/new-listing"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition"
+                  >
+                    + Post Listing
+                  </Link>
+                </div>
+
+                {/* Listings Grid */}
+                {filteredListings.length === 0 ? (
+                  <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                    <div className="text-6xl mb-4">🔍</div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">No Listings Found</h3>
+                    <p className="text-gray-600 mb-6">
+                      Try adjusting your filters or search terms
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSelectedCategory('All');
+                        setStatusFilter('all');
+                        setSearchTerm('');
+                      }}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {filteredListings.map((listing) => (
+                      <ListingCard key={listing._id} listing={listing} />
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -22,7 +22,10 @@ const userSchema = new mongoose.Schema({
   },
   photoUrl: {
     type: String,
-    default: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
+    default: function() {
+      // Generate unique avatar based on user's email
+      return `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.email}`;
+    }
   },
   skills: [{
     type: String,

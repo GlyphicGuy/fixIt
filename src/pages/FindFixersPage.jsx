@@ -1,38 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import SkillProfileCard from '../components/SkillProfileCard';
 import SearchBar from '../components/SearchBar';
-import { mockFixers } from '../data/mockData';
+import { getFixers } from '../services/userService';
 
 function FindFixersPage() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSkill, setSelectedSkill] = useState('All');
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState('rating'); // rating, fixes, name
+  const [fixers, setFixers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch fixers on component mount
+  useEffect(() => {
+    fetchFixers();
+  }, []);
+
+  const fetchFixers = async () => {
+    try {
+      setLoading(true);
+      const data = await getFixers();
+      setFixers(data);
+      setError('');
+    } catch (err) {
+      console.error('Error fetching fixers:', err);
+      setError('Failed to load fixers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get all unique skills from all fixers
-  const allSkills = ['All', ...new Set(mockFixers.flatMap(fixer => fixer.skills))];
+  const allSkills = ['All', ...new Set(fixers.flatMap(fixer => fixer.skills || []))];
 
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
 
   // Apply filters
-  let filteredFixers = mockFixers
+  let filteredFixers = fixers
     .filter(fixer => 
       searchTerm === '' || 
       fixer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fixer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+      (fixer.skills && fixer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
     )
     .filter(fixer => 
-      selectedSkill === 'All' || fixer.skills.includes(selectedSkill)
+      selectedSkill === 'All' || (fixer.skills && fixer.skills.includes(selectedSkill))
     )
-    .filter(fixer => fixer.rating >= minRating);
+    .filter(fixer => (fixer.rating || 0) >= minRating);
 
   // Sort fixers
   if (sortBy === 'rating') {
-    filteredFixers.sort((a, b) => b.rating - a.rating);
+    filteredFixers.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   } else if (sortBy === 'fixes') {
-    filteredFixers.sort((a, b) => b.fixesCompleted - a.fixesCompleted);
+    filteredFixers.sort((a, b) => (b.fixesCompleted || 0) - (a.fixesCompleted || 0));
   } else if (sortBy === 'name') {
     filteredFixers.sort((a, b) => a.name.localeCompare(b.name));
   }
@@ -54,7 +78,19 @@ function FindFixersPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      {loading ? (
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+          <p className="mt-4 text-gray-600">Loading fixers...</p>
+        </div>
+      ) : error ? (
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg inline-block">
+            {error}
+          </div>
+        </div>
+      ) : (
+        <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar - Filters */}
           <div className="lg:col-span-1">
@@ -134,7 +170,10 @@ function FindFixersPage() {
                 <p className="text-sm text-purple-700 mb-3">
                   Share your skills and become a fixer!
                 </p>
-                <button className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition text-sm">
+                <button 
+                  onClick={() => navigate('/register')}
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 transition text-sm"
+                >
                   Add Your Skills
                 </button>
               </div>
@@ -156,7 +195,7 @@ function FindFixersPage() {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-lg shadow-md p-4 text-center">
-                <div className="text-3xl font-bold text-purple-600">{mockFixers.length}</div>
+                <div className="text-3xl font-bold text-purple-600">{fixers.length}</div>
                 <div className="text-sm text-gray-600">Total Fixers</div>
               </div>
               <div className="bg-white rounded-lg shadow-md p-4 text-center">
@@ -167,7 +206,7 @@ function FindFixersPage() {
               </div>
               <div className="bg-white rounded-lg shadow-md p-4 text-center">
                 <div className="text-3xl font-bold text-green-600">
-                  {mockFixers.reduce((sum, f) => sum + f.fixesCompleted, 0)}
+                  {fixers.reduce((sum, f) => sum + (f.fixesCompleted || 0), 0)}
                 </div>
                 <div className="text-sm text-gray-600">Total Fixes</div>
               </div>
@@ -195,13 +234,14 @@ function FindFixersPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredFixers.map((fixer) => (
-                  <SkillProfileCard key={fixer.id} fixer={fixer} />
+                  <SkillProfileCard key={fixer._id} fixer={fixer} />
                 ))}
               </div>
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,8 @@ import FindFixersPage from './pages/FindFixersPage'
 import NewListingPage from './pages/NewListingPage'
 import ProfilePage from './pages/ProfilePage'
 import ListingDetailPage from './pages/ListingDetailPage'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import './App.css'
 
 function App() {
@@ -20,7 +22,10 @@ function App() {
         <Route path="/fixers" element={<FindFixersPage />} />
         <Route path="/new-listing" element={<NewListingPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/listing/:id" element={<ListingDetailPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
       </Routes>
       <Footer />
     </div>

@@ -37,11 +37,20 @@ const listingSchema = new mongoose.Schema({
       ref: 'User'
     },
     message: String,
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected'],
+      default: 'pending'
+    },
     createdAt: {
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  acceptedFixer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }
 }, {
   timestamps: true
 });

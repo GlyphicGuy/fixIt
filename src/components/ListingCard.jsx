@@ -44,10 +44,10 @@ function ListingCard({ listing }) {
         {/* Footer */}
         <div className="flex justify-between items-center pt-3 border-t border-gray-200">
           <div className="text-sm text-gray-500">
-            <span className="font-semibold">Posted by:</span> {listing.postedBy}
+            <span className="font-semibold">Posted by:</span> {listing.postedBy?.name || listing.postedBy || 'Unknown'}
           </div>
           <Link 
-            to={`/listing/${listing.id}`}
+            to={`/listing/${listing._id || listing.id}`}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
           >
             View Details
