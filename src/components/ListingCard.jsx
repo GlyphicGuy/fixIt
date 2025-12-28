@@ -15,7 +15,10 @@ function ListingCard({ listing }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300">
+    <Link 
+      to={`/listing/${listing._id || listing.id}`}
+      className="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+    >
       {/* Image */}
       <div className="relative">
         <img 
@@ -24,7 +27,7 @@ function ListingCard({ listing }) {
           className="w-full h-48 object-cover"
         />
         <span className={`absolute top-2 right-2 ${statusColors[listing.status]} text-white px-3 py-1 rounded-full text-sm font-semibold`}>
-          {listing.status === 'open' ? '🔓 Open' : '✅ Fixed'}
+          {listing.status === 'open' ? 'Open' : 'Fixed'}
         </span>
       </div>
 
@@ -46,15 +49,12 @@ function ListingCard({ listing }) {
           <div className="text-sm text-gray-500">
             <span className="font-semibold">Posted by:</span> {listing.postedBy?.name || listing.postedBy || 'Unknown'}
           </div>
-          <Link 
-            to={`/listing/${listing._id || listing.id}`}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
-          >
+          <span className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition">
             View Details
-          </Link>
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

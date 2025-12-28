@@ -30,14 +30,14 @@ function SearchBar({ onSearch, placeholder = "Search listings..." }) {
               onClick={handleClear}
               className="px-4 py-2 text-gray-500 hover:text-gray-700 transition"
             >
-              ✕
+              ×
             </button>
           )}
           <button
             type="submit"
             className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-blue-700 transition"
           >
-            🔍
+            Search
           </button>
         </div>
       </div>

@@ -9,7 +9,6 @@ function Footer() {
           {/* About */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <span className="text-2xl">🔧</span>
               <h3 className="text-xl font-bold">Fix-It Hub</h3>
             </div>
             <p className="text-gray-400 text-sm">
@@ -63,15 +62,15 @@ function Footer() {
             <h4 className="text-lg font-semibold mb-4">Connect With Us</h4>
             <div className="space-y-3">
               <p className="text-gray-400 text-sm">
-                📧 support@fixithub.edu
+                support@fixithub.edu
               </p>
               <p className="text-gray-400 text-sm">
-                📍 Campus Student Center, Room 204
+                Campus Student Center, Room 204
               </p>
               <div className="flex space-x-4 mt-4">
-                <a href="#facebook" className="text-gray-400 hover:text-white transition text-2xl">📘</a>
-                <a href="#instagram" className="text-gray-400 hover:text-white transition text-2xl">📷</a>
-                <a href="#twitter" className="text-gray-400 hover:text-white transition text-2xl">🐦</a>
+                <a href="#facebook" className="text-gray-400 hover:text-white transition">Facebook</a>
+                <a href="#instagram" className="text-gray-400 hover:text-white transition">Instagram</a>
+                <a href="#twitter" className="text-gray-400 hover:text-white transition">Twitter</a>
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ function SkillProfileCard({ fixer }) {
           <h3 className="text-xl font-bold text-gray-800">{fixer.name}</h3>
           <div className="flex items-center space-x-2 text-sm text-gray-600">
             <span className="flex items-center">
-              ⭐ {fixer.rating}
+              Rating: {fixer.rating}
             </span>
             <span>•</span>
             <span>{fixer.fixesCompleted} fixes completed</span>

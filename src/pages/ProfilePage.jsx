@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { updateUserProfile, getUserProfile } from '../services/userService';
 import { getUserListings, getInterestedListings } from '../services/listingService';
 
 function ProfilePage() {
   const { userId } = useParams(); // Get userId from URL if viewing another user's profile
-  const { user: authUser, isAuthenticated, loading: authLoading } = useAuth();
+  const { user: authUser, isAuthenticated, loading: authLoading, updateUser } = useAuth();
+  const { success, error: showError } = useToast();
   const navigate = useNavigate();
   
   const [user, setUser] = useState(null);
@@ -22,6 +24,8 @@ function ProfilePage() {
     name: '',
     bio: ''
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [previewPhoto, setPreviewPhoto] = useState(null);
 
   // Redirect if not authenticated AND viewing own profile
   useEffect(() => {
@@ -91,7 +95,7 @@ function ProfilePage() {
         setNewSkill('');
       } catch (err) {
         console.error('Error adding skill:', err);
-        alert('Failed to add skill. Please try again.');
+        showError('Failed to add skill. Please try again.');
       } finally {
         setIsSavingSkills(false);
       }
@@ -112,7 +116,7 @@ function ProfilePage() {
       }));
     } catch (err) {
       console.error('Error removing skill:', err);
-      alert('Failed to remove skill. Please try again.');
+      showError('Failed to remove skill. Please try again.');
     } finally {
       setIsSavingSkills(false);
     }
@@ -137,9 +141,86 @@ function ProfilePage() {
       setIsEditingProfile(false);
     } catch (err) {
       console.error('Error updating profile:', err);
-      alert('Failed to update profile. Please try again.');
+      showError('Failed to update profile. Please try again.');
     } finally {
       setIsSavingSkills(false);
+    }
+  };
+
+  const handlePhotoUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log('File selected:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      sizeMB: (file.size / (1024 * 1024)).toFixed(2) + ' MB'
+    });
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image size should be less than 5MB');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      console.log('Starting file conversion to base64...');
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64String = reader.result;
+        const base64Size = (base64String.length / (1024 * 1024)).toFixed(2);
+        console.log(`Base64 conversion complete. Size: ${base64Size} MB`);
+        setPreviewPhoto(base64String);
+
+        try {
+          console.log('Uploading to server...');
+          // Upload to server
+          await updateUserProfile({ photoUrl: base64String });
+          console.log('Upload successful!');
+          
+          setUser(prev => ({
+            ...prev,
+            photoUrl: base64String
+          }));
+          
+          // Update auth context if viewing own profile
+          if (isOwnProfile) {
+            updateUser({ photoUrl: base64String });
+          }
+          
+          success('Profile picture updated successfully!');
+          setPreviewPhoto(null);
+        } catch (err) {
+          console.error('Error uploading photo:', err);
+          console.error('Error details:', err.response?.data);
+          showError(err.response?.data?.message || 'Failed to upload photo. Please try again.');
+          setPreviewPhoto(null);
+        } finally {
+          setUploadingPhoto(false);
+        }
+      };
+
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        showError('Failed to read the image file');
+        setUploadingPhoto(false);
+      };
+
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Error processing photo:', err);
+      showError('Failed to process photo. Please try again.');
+      setUploadingPhoto(false);
     }
   };
 
@@ -181,11 +262,41 @@ function ProfilePage() {
         <div className="bg-white rounded-lg shadow-md p-8 mb-6">
           <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
             {/* Profile Photo */}
-            <img
-              src={user.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
-              alt={user.name}
-              className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 bg-gray-100"
-            />
+            <div className="relative">
+              <img
+                src={previewPhoto || user.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                alt={user.name}
+                className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 bg-gray-100"
+              />
+              {isOwnProfile && (
+                <div className="absolute bottom-0 right-0">
+                  <input
+                    type="file"
+                    id="photo-upload"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="photo-upload"
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer shadow-lg transition flex items-center justify-center"
+                    title="Change profile picture"
+                  >
+                    {uploadingPhoto ? (
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    )}
+                  </label>
+                </div>
+              )}
+            </div>
 
             {/* User Info */}
             <div className="flex-1 text-center md:text-left">
@@ -200,7 +311,7 @@ function ProfilePage() {
                   <div className="text-sm text-gray-600">Fixes Completed</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">⭐ {user.rating || 0}</div>
+                  <div className="text-2xl font-bold text-blue-600">{user.rating || 0}</div>
                   <div className="text-sm text-gray-600">Rating</div>
                 </div>
                 <div className="text-center">
@@ -290,7 +401,7 @@ function ProfilePage() {
             {/* Skills Section */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{isOwnProfile ? 'My Skills' : 'Skills'} 🛠️</h2>
+                <h2 className="text-2xl font-bold text-gray-800">{isOwnProfile ? 'My Skills' : 'Skills'}</h2>
                 {isOwnProfile && (
                   <button
                     onClick={() => setIsEditingSkills(!isEditingSkills)}
@@ -320,7 +431,7 @@ function ProfilePage() {
                           className="text-red-500 hover:text-red-700"
                           disabled={isSavingSkills}
                         >
-                          ✕
+                          ×
                         </button>
                       )}
                     </div>
@@ -408,7 +519,7 @@ function ProfilePage() {
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
-                          {listing.status === 'open' ? '🔓 Open' : '✅ Fixed'}
+                          {listing.status === 'open' ? 'Open' : 'Fixed'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-sm text-gray-600">
@@ -428,7 +539,7 @@ function ProfilePage() {
             {/* Interested Listings Section - Only show for own profile */}
             {isOwnProfile && (
               <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">My Proposals 💼</h2>
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">My Proposals</h2>
                 <p className="text-sm text-gray-600 mb-4">Listings you&apos;ve expressed interest in fixing</p>
                 
                 {interestedListings.length === 0 ? (
@@ -465,9 +576,9 @@ function ProfilePage() {
                               : 'bg-blue-100 text-blue-800'
                           }`}
                         >
-                          {listing.userInterestStatus === 'accepted' ? '✓ Accepted' : 
-                           listing.userInterestStatus === 'rejected' ? '✗ Not Selected' : 
-                           '⏳ Pending'}
+                          {listing.userInterestStatus === 'accepted' ? 'Accepted' : 
+                           listing.userInterestStatus === 'rejected' ? 'Not Selected' : 
+                           'Pending'}
                         </span>
                       </div>
                       

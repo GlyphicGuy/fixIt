@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { createListing } from '../services/listingService';
 
 function NewListingPage() {
@@ -16,6 +17,7 @@ function NewListingPage() {
   const [error, setError] = useState('');
   
   const { isAuthenticated } = useAuth();
+  const { success, error: showError } = useToast();
   const navigate = useNavigate();
 
   // Redirect if not authenticated
@@ -80,7 +82,7 @@ function NewListingPage() {
       };
       
       await createListing(listingData);
-      alert('Listing posted successfully!');
+      success('Listing posted successfully!');
       navigate('/'); // Redirect to home page
     } catch (err) {
       console.error('Error creating listing:', err);
@@ -95,7 +97,7 @@ function NewListingPage() {
       <div className="container mx-auto px-4 max-w-2xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Post a Repair Request 🔧</h1>
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Post a Repair Request</h1>
           <p className="text-gray-600">
             Tell us what needs fixing, and connect with skilled fixers on campus!
           </p>
@@ -234,7 +236,7 @@ function NewListingPage() {
 
         {/* Info Card */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-800 mb-2">💡 Tips for posting:</h3>
+          <h3 className="font-semibold text-blue-800 mb-2">Tips for posting:</h3>
           <ul className="text-sm text-blue-700 space-y-1">
             <li>• Be specific about what's broken</li>
             <li>• Include relevant details (brand, model, etc.)</li>

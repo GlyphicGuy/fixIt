@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getListingById, expressInterest, acceptFixer, markListingFixed } from '../services/listingService';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import ConfirmModal from '../components/ConfirmModal';
 
 function ListingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { success, error: showError, warning } = useToast();
   
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,6 +19,7 @@ function ListingDetailPage() {
   const [sending, setSending] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchListing();
@@ -37,20 +41,20 @@ function ListingDetailPage() {
 
   const handleExpressInterest = async () => {
     if (!isAuthenticated) {
-      alert('Please login to express interest');
+      warning('Please login to express interest');
       navigate('/login');
       return;
     }
 
     if (!message.trim()) {
-      alert('Please enter a message');
+      warning('Please enter a message');
       return;
     }
 
     try {
       setSending(true);
       await expressInterest(id, message);
-      alert('Interest expressed! The poster will be notified.');
+      success('Interest expressed! The poster will be notified.');
       setMessage('');
       setShowContactForm(false);
       fetchListing(); // Refresh listing
@@ -58,25 +62,28 @@ function ListingDetailPage() {
       console.error('Error expressing interest:', err);
       console.error('Error response:', err.response?.data);
       const errorMessage = err.response?.data?.message || 'Failed to send message. Please try again.';
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setSending(false);
     }
   };
 
   const handleAcceptFixer = async (fixerId, fixerName) => {
-    if (!window.confirm(`Accept ${fixerName} for this job?`)) {
-      return;
-    }
-
-    try {
-      await acceptFixer(id, fixerId);
-      alert(`${fixerName} has been accepted! They will be notified.`);
-      fetchListing(); // Refresh listing to show updated status
-    } catch (err) {
-      console.error('Error accepting fixer:', err);
-      alert('Failed to accept fixer. Please try again.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Accept Fixer',
+      message: `Accept ${fixerName} for this job?`,
+      onConfirm: async () => {
+        try {
+          await acceptFixer(id, fixerId);
+          success(`${fixerName} has been accepted! They will be notified.`);
+          fetchListing(); // Refresh listing to show updated status
+        } catch (err) {
+          console.error('Error accepting fixer:', err);
+          showError('Failed to accept fixer. Please try again.');
+        }
+      }
+    });
   };
 
   const handleMarkAsFixed = () => {
@@ -90,29 +97,32 @@ function ListingDetailPage() {
   };
 
   const handleCloseWithoutRating = async () => {
-    if (!window.confirm('Mark this listing as fixed?')) {
-      return;
-    }
-
-    try {
-      await markListingFixed(id);
-      alert('Listing marked as fixed!');
-      fetchListing();
-    } catch (err) {
-      console.error('Error marking listing as fixed:', err);
-      alert('Failed to mark listing as fixed. Please try again.');
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Mark as Fixed',
+      message: 'Mark this listing as fixed?',
+      onConfirm: async () => {
+        try {
+          await markListingFixed(id);
+          success('Listing marked as fixed!');
+          fetchListing();
+        } catch (err) {
+          console.error('Error marking listing as fixed:', err);
+          showError('Failed to mark listing as fixed. Please try again.');
+        }
+      }
+    });
   };
 
   const handleSubmitRating = async () => {
     try {
       await markListingFixed(id, rating, listing.acceptedFixer._id);
-      alert('Listing marked as fixed and fixer rated!');
+      success('Listing marked as fixed and fixer rated!');
       setShowRatingModal(false);
       fetchListing();
     } catch (err) {
       console.error('Error submitting rating:', err);
-      alert('Failed to submit rating. Please try again.');
+      showError('Failed to submit rating. Please try again.');
     }
   };
 
@@ -187,7 +197,7 @@ function ListingDetailPage() {
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {listing.status === 'open' ? '🔓 Open' : '✅ Fixed'}
+                    {listing.status === 'open' ? 'Open' : 'Fixed'}
                   </span>
                 </div>
 
@@ -238,13 +248,13 @@ function ListingDetailPage() {
                     >
                       {showContactForm ? 'Hide Form' : 'I Can Fix This!'}
                     </button>
-                    {listing.postedBy?.email && (
-                      <a
-                        href={`mailto:${listing.postedBy.email}?subject=Fix-It Hub: About "${listing.title}"&body=Hi ${listing.postedBy.name},%0D%0A%0D%0AI can help fix your ${listing.title}.`}
+                    {listing.postedBy?._id && (
+                      <button
+                        onClick={() => navigate(`/conversation/${listing._id}?with=${listing.postedBy._id}`)}
                         className="px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition text-center"
                       >
-                        Contact Poster �
-                      </a>
+                        Message Poster
+                      </button>
                     )}
                   </div>
                 )}
@@ -308,7 +318,12 @@ function ListingDetailPage() {
                           className="w-12 h-12 rounded-full object-cover"
                         />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-800">{item.fixer?.name}</h3>
+                          <Link 
+                            to={`/profile/${item.fixer?._id}`}
+                            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {item.fixer?.name}
+                          </Link>
                           <div className="flex items-center text-sm text-gray-600 space-x-2">
                             {item.fixer?.rating && (
                               <>
@@ -346,22 +361,22 @@ function ListingDetailPage() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleAcceptFixer(item.fixer._id, item.fixer.name)}
-                            className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition text-sm"
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition font-semibold"
                           >
-                            ✓ Accept
+                            Accept
                           </button>
-                          <a
-                            href={`mailto:${item.fixer?.email}?subject=About your pitch for "${listing.title}"&body=Hi ${item.fixer?.name},%0D%0A%0D%0A`}
+                          <button
+                            onClick={() => navigate(`/conversation/${listing._id}?with=${item.fixer._id}`)}
                             className="flex-1 border-2 border-blue-600 text-blue-600 py-2 px-4 rounded-lg font-semibold hover:bg-blue-50 transition text-sm text-center"
                           >
                             Message
-                          </a>
+                          </button>
                         </div>
                       )}
                       
                       {item.status === 'accepted' && (
                         <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-center">
-                          <p className="text-green-800 font-semibold text-sm">✓ Accepted</p>
+                          <p className="text-green-800 font-semibold text-sm">Accepted</p>
                         </div>
                       )}
                       
@@ -382,14 +397,19 @@ function ListingDetailPage() {
                 <h2 className="text-xl font-bold text-green-800 mb-4 flex items-center">
                   <span className="mr-2">✓</span> Accepted Fixer
                 </h2>
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3 mb-4">
                   <img
                     src={listing.acceptedFixer.photoUrl}
                     alt={listing.acceptedFixer.name}
                     className="w-16 h-16 rounded-full object-cover border-2 border-green-500"
                   />
                   <div className="flex-1">
-                    <h3 className="font-bold text-gray-800">{listing.acceptedFixer.name}</h3>
+                    <Link 
+                      to={`/profile/${listing.acceptedFixer._id}`}
+                      className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-lg"
+                    >
+                      {listing.acceptedFixer.name}
+                    </Link>
                     {listing.acceptedFixer.skills && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {listing.acceptedFixer.skills.slice(0, 3).map((skill, idx) => (
@@ -404,6 +424,16 @@ function ListingDetailPage() {
                     )}
                   </div>
                 </div>
+                
+                {/* Message Button - Show to both poster and fixer */}
+                {user && (user._id === listing.postedBy?._id || user._id === listing.acceptedFixer._id) && (
+                  <button
+                    onClick={() => navigate(`/conversation/${listing._id}?with=${user._id === listing.postedBy?._id ? listing.acceptedFixer._id : listing.postedBy._id}`)}
+                    className="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+                  >
+                    Message {user._id === listing.postedBy?._id ? 'Fixer' : 'Poster'}
+                  </button>
+                )}
               </div>
             )}
 
@@ -440,7 +470,7 @@ function ListingDetailPage() {
                   onClick={() => setRating(star)}
                   className="text-4xl focus:outline-none transition-transform hover:scale-110"
                 >
-                  {star <= rating ? '⭐' : '☆'}
+                  {star <= rating ? '★' : '☆'}
                 </button>
               ))}
             </div>
@@ -467,6 +497,15 @@ function ListingDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+      />
     </div>
   );
 }

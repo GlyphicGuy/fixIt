@@ -38,7 +38,7 @@ function HowItWorks() {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            How It Works 🚀
+            How It Works
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Getting your items fixed has never been easier. Join our community and start repairing today!
@@ -84,7 +84,7 @@ function HowItWorks() {
             href="/new-listing"
             className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition shadow-lg hover:shadow-xl"
           >
-            Get Started Now! 🎯
+            Get Started Now
           </a>
         </div>
       </div>

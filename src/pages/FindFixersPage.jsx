@@ -66,7 +66,7 @@ function FindFixersPage() {
       {/* Header Section */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold mb-4 text-center">Find Skilled Fixers 👥</h1>
+          <h1 className="text-4xl font-bold mb-4 text-center">Find Skilled Fixers</h1>
           <p className="text-xl text-center mb-6">
             Connect with talented students who can help repair your items!
           </p>

@@ -104,11 +104,32 @@ const updateUserProfile = async (req, res) => {
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-      user.photoUrl = req.body.photoUrl || user.photoUrl;
+      
+      // Handle photo URL update (can be regular URL or base64)
+      if (req.body.photoUrl) {
+        const photoUrl = req.body.photoUrl;
+        const photoSize = (photoUrl.length / (1024 * 1024)).toFixed(2);
+        console.log(`Received photo URL. Size: ${photoSize} MB`);
+        
+        // Basic validation: check if it's a data URL (base64) or regular URL
+        const isDataUrl = photoUrl.startsWith('data:image/');
+        const isRegularUrl = photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
+        
+        if (isDataUrl || isRegularUrl) {
+          console.log(`Photo URL validation passed. Type: ${isDataUrl ? 'base64' : 'regular URL'}`);
+          user.photoUrl = photoUrl;
+        } else {
+          console.log('Photo URL validation failed');
+          return res.status(400).json({ message: 'Invalid photo URL format' });
+        }
+      }
+      
       user.skills = req.body.skills || user.skills;
       user.bio = req.body.bio || user.bio;
 
+      console.log('Saving user profile...');
       const updatedUser = await user.save();
+      console.log('User profile saved successfully');
 
       res.json({
         _id: updatedUser._id,
@@ -125,6 +146,7 @@ const updateUserProfile = async (req, res) => {
       res.status(404).json({ message: 'User not found' });
     }
   } catch (error) {
+    console.error('Error updating user profile:', error);
     res.status(500).json({ message: error.message });
   }
 };

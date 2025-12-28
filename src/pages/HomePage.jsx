@@ -145,7 +145,7 @@ function HomePage() {
 
         {/* Featured Fixers */}
         <div id="fixers-section">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Fixers 🌟</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Fixers</h2>
           {loading ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

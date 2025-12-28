@@ -45,6 +45,31 @@ npm run dev
 
 4. Open your browser and visit `http://localhost:5173`
 
+### Database Viewer
+
+To view and inspect the MongoDB database in your browser:
+
+1. Make sure the backend server is running (`npm run dev` in the `server` directory)
+
+2. Open `server/db-viewer.html` in your browser or visit it directly:
+```bash
+open server/db-viewer.html
+# or on Linux: xdg-open server/db-viewer.html
+# or just drag the file into your browser
+```
+
+The database viewer provides:
+- **Live Statistics** - Total users, listings, open/fixed counts
+- **Users Collection** - View all users with their skills, ratings, and activity
+- **Listings Collection** - Browse all listings with status, interested fixers, and details
+- **Table & JSON Views** - Toggle between formatted table and raw JSON data
+- **Real-time Refresh** - Update data with the refresh button
+
+**API Endpoints:**
+- `GET /api/db/stats` - Database statistics
+- `GET /api/db/users` - All users (passwords excluded)
+- `GET /api/db/listings` - All listings with populated references
+
 ## 🛠️ Tech Stack
 
 - **Frontend Framework**: React 18 with Vite

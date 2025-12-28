@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ConfirmModal from './ConfirmModal';
 
 function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
     logout();
     navigate('/');
   };
@@ -17,7 +23,6 @@ function Navbar() {
         <div className="flex justify-between items-center py-4">
           {/* Logo/Brand */}
           <Link to="/" className="flex items-center space-x-2 hover:opacity-90 transition">
-            <span className="text-2xl">🔧</span>
             <h1 className="text-2xl font-bold">Fix-It Hub</h1>
           </Link>
 
@@ -27,7 +32,10 @@ function Navbar() {
             <Link to="/browse" className="hover:text-blue-200 transition">Browse Listings</Link>
             <Link to="/fixers" className="hover:text-blue-200 transition">Find Fixers</Link>
             {isAuthenticated && (
-              <Link to="/profile" className="hover:text-blue-200 transition">My Profile</Link>
+              <>
+                <Link to="/messages" className="hover:text-blue-200 transition">Messages</Link>
+                <Link to="/profile" className="hover:text-blue-200 transition">My Profile</Link>
+              </>
             )}
           </div>
 
@@ -50,7 +58,7 @@ function Navbar() {
                   <span className="text-sm hidden lg:block">Hi, {user?.name?.split(' ')[0]}</span>
                 </Link>
                 <button
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg font-semibold transition"
                 >
                   Logout
@@ -75,6 +83,17 @@ function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
     </nav>
   );
 }
