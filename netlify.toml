@@ -1,0 +1,14 @@
+# Netlify Configuration for Frontend
+[build]
+  base = "/"
+  publish = "dist"
+  command = "npm run build"
+
+# Redirect all requests to index.html for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Environment variables (set these in Netlify dashboard)
+# VITE_API_URL - Your backend API URL (e.g., https://your-app.onrender.com/api)
