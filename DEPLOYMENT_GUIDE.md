@@ -130,7 +130,10 @@ git push -u origin main
    - **Branch**: `main`
    - **Root Directory**: `server`
    - **Runtime**: `Node`
-   - **Build Command**: `npm install`
+   - **Build Command**: **Leave EMPTY** (or use `npm install`)
+     - ⚠️ **Important**: Node.js doesn't need a build step!
+     - Render auto-installs dependencies
+     - If build fails, make sure this field is empty
    - **Start Command**: `node server.js`
    - **Instance Type**: **Free**
 

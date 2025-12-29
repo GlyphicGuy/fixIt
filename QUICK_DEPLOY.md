@@ -74,10 +74,11 @@ git push -u origin main
 1. Go to [render.com](https://render.com)
 2. Connect GitHub
 3. New Web Service → Select `fixIt` repo
-4. Settings:
-   - Root Directory: `server`
-   - Build: `npm install`
-   - Start: `node server.js`
+4. **IMPORTANT Settings**:
+   - **Root Directory**: `server`
+   - **Build Command**: Leave EMPTY or use `npm install`
+   - **Start Command**: `node server.js`
+   - **Instance Type**: Free
 5. Environment Variables:
    ```
    MONGODB_URI = your_connection_string_from_step_1
