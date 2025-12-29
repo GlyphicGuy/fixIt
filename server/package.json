@@ -10,5 +10,16 @@
     "seed": "node seeder.js",
     "seed:destroy": "node seeder.js -d",
     "db:ui": "ME_CONFIG_MONGODB_URL=mongodb://localhost:27017 ME_CONFIG_BASICAUTH_USERNAME=admin ME_CONFIG_BASICAUTH_PASSWORD=admin123 ME_CONFIG_SITE_BASEURL=/ VCAP_APP_PORT=8081 npx mongo-express"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
