@@ -2,6 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 function Footer() {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="bg-gray-800 text-white mt-16">
       <div className="container mx-auto px-4 py-12">
@@ -21,16 +25,16 @@ function Footer() {
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <Link to="/" className="hover:text-white transition">Home</Link>
+                <Link to="/" onClick={scrollToTop} className="hover:text-white transition">Home</Link>
               </li>
               <li>
-                <Link to="/browse" className="hover:text-white transition">Browse Listings</Link>
+                <Link to="/browse" onClick={scrollToTop} className="hover:text-white transition">Browse Listings</Link>
               </li>
               <li>
-                <Link to="/fixers" className="hover:text-white transition">Find Fixers</Link>
+                <Link to="/fixers" onClick={scrollToTop} className="hover:text-white transition">Find Fixers</Link>
               </li>
               <li>
-                <Link to="/new-listing" className="hover:text-white transition">Post a Listing</Link>
+                <Link to="/new-listing" onClick={scrollToTop} className="hover:text-white transition">Post a Listing</Link>
               </li>
             </ul>
           </div>
@@ -40,16 +44,16 @@ function Footer() {
             <h4 className="text-lg font-semibold mb-4">Categories</h4>
             <ul className="space-y-2 text-gray-400">
               <li>
-                <Link to="/browse?category=Tech" className="hover:text-white transition">Tech Repairs</Link>
+                <Link to="/browse?category=Tech" onClick={scrollToTop} className="hover:text-white transition">Tech Repairs</Link>
               </li>
               <li>
-                <Link to="/browse?category=Clothing" className="hover:text-white transition">Clothing & Textiles</Link>
+                <Link to="/browse?category=Clothing" onClick={scrollToTop} className="hover:text-white transition">Clothing & Textiles</Link>
               </li>
               <li>
-                <Link to="/browse?category=Furniture" className="hover:text-white transition">Furniture</Link>
+                <Link to="/browse?category=Furniture" onClick={scrollToTop} className="hover:text-white transition">Furniture</Link>
               </li>
               <li>
-                <Link to="/browse?category=Other" className="hover:text-white transition">Other Items</Link>
+                <Link to="/browse?category=Other" onClick={scrollToTop} className="hover:text-white transition">Other Items</Link>
               </li>
             </ul>
           </div>
@@ -59,7 +63,7 @@ function Footer() {
             <h4 className="text-lg font-semibold mb-4">Connect With Us</h4>
             <div className="space-y-3">
               <p className="text-gray-400 text-sm">
-                support@fixithub.edu
+                <a href="https://github.com/GlyphicGuy/fixIt" target="_blank" rel="noopener noreferrer">Open a Github issue!</a>
               </p>
               <p className="text-gray-400 text-sm">
                 Campus Student Center, Room 204
