@@ -57,3 +57,9 @@ export const getFixers = async () => {
   const { data } = await api.get('/users/fixers');
   return data;
 };
+
+// Report a user
+export const reportUser = async (userId, reason) => {
+  const { data } = await api.post(`/users/${userId}/report`, { reason });
+  return data;
+};

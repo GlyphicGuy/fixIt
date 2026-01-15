@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { updateUserProfile, getUserProfile } from '../services/userService';
+import { updateUserProfile, getUserProfile, reportUser } from '../services/userService';
 import { getUserListings, getInterestedListings } from '../services/listingService';
 
 function ProfilePage() {
@@ -10,7 +10,7 @@ function ProfilePage() {
   const { user: authUser, isAuthenticated, loading: authLoading, updateUser } = useAuth();
   const { success, error: showError } = useToast();
   const navigate = useNavigate();
-  
+
   const [user, setUser] = useState(null);
   const [myListings, setMyListings] = useState([]);
   const [interestedListings, setInterestedListings] = useState([]);
@@ -20,6 +20,8 @@ function ProfilePage() {
   const [newSkill, setNewSkill] = useState('');
   const [isSavingSkills, setIsSavingSkills] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const [editFormData, setEditFormData] = useState({
     name: '',
     bio: ''
@@ -39,10 +41,10 @@ function ProfilePage() {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        
+
         let profileData;
         let targetUserId;
-        
+
         // If userId is provided in URL, fetch that user's profile (public view)
         if (userId) {
           profileData = await getUserProfile(userId);
@@ -54,19 +56,19 @@ function ProfilePage() {
         } else {
           return;
         }
-        
+
         setUser(profileData);
-        
+
         // Fetch user's listings
         const listings = await getUserListings(targetUserId);
         setMyListings(listings);
-        
+
         // Only fetch interested listings for own profile
         if (!userId || (authUser && userId === authUser._id)) {
           const interested = await getInterestedListings(targetUserId);
           setInterestedListings(interested);
         }
-        
+
         setError('');
       } catch (err) {
         console.error('Error fetching profile data:', err);
@@ -84,7 +86,7 @@ function ProfilePage() {
   const handleAddSkill = async () => {
     if (newSkill.trim() && user) {
       const updatedSkills = [...(user.skills || []), newSkill.trim()];
-      
+
       try {
         setIsSavingSkills(true);
         await updateUserProfile({ skills: updatedSkills });
@@ -104,9 +106,9 @@ function ProfilePage() {
 
   const handleRemoveSkill = async (skillToRemove) => {
     if (!user) return;
-    
+
     const updatedSkills = user.skills.filter(skill => skill !== skillToRemove);
-    
+
     try {
       setIsSavingSkills(true);
       await updateUserProfile({ skills: updatedSkills });
@@ -119,6 +121,23 @@ function ProfilePage() {
       showError('Failed to remove skill. Please try again.');
     } finally {
       setIsSavingSkills(false);
+    }
+  };
+
+  const handleReportUser = async () => {
+    if (!reportReason.trim()) {
+      showError('Please provide a reason for reporting');
+      return;
+    }
+
+    try {
+      await reportUser(user._id, reportReason);
+      success('User reported successfully. Admins will review the case.');
+      setShowReportModal(false);
+      setReportReason('');
+    } catch (err) {
+      console.error('Error reporting user:', err);
+      showError(err.response?.data?.message || 'Failed to submit report');
     }
   };
 
@@ -187,17 +206,17 @@ function ProfilePage() {
           // Upload to server
           await updateUserProfile({ photoUrl: base64String });
           console.log('Upload successful!');
-          
+
           setUser(prev => ({
             ...prev,
             photoUrl: base64String
           }));
-          
+
           // Update auth context if viewing own profile
           if (isOwnProfile) {
             updateUser({ photoUrl: base64String });
           }
-          
+
           success('Profile picture updated successfully!');
           setPreviewPhoto(null);
         } catch (err) {
@@ -321,7 +340,7 @@ function ProfilePage() {
               </div>
 
               {isOwnProfile && (
-                <button 
+                <button
                   onClick={handleEditProfile}
                   className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
                 >
@@ -329,24 +348,75 @@ function ProfilePage() {
                 </button>
               )}
 
-              {!isOwnProfile && user.email && (
-                <a
-                  href={`mailto:${user.email}?subject=Fix-It Hub: Contact Request&body=Hi ${user.name},%0D%0A%0D%0AI found your profile on Fix-It Hub and would like to get in touch.`}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition inline-block"
-                >
-                  Contact Fixer
-                </a>
+              {!isOwnProfile && isAuthenticated && user.email && (
+                <div className="flex space-x-3 mt-4 md:mt-0">
+                  <a
+                    href={`mailto:${user.email}?subject=Fix-It Hub: Contact Request&body=Hi ${user.name},%0D%0A%0D%0AI found your profile on Fix-It Hub and would like to get in touch.`}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition inline-block"
+                  >
+                    Contact Fixer
+                  </a>
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    className="bg-white border border-red-200 text-red-600 px-4 py-2 rounded-lg font-semibold hover:bg-red-50 transition"
+                  >
+                    Report
+                  </button>
+                </div>
               )}
             </div>
           </div>
         </div>
+
+        {/* Report Modal */}
+        {showReportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <svg className="w-5 h-5 text-red-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Report User
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Please describe the issue with this user (harassment, spam, inappropriate behavior, etc.).
+                Admins will investigate immediately.
+              </p>
+
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full h-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 text-sm"
+                placeholder="Details about the violation..."
+              ></textarea>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportReason('');
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleReportUser}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Submit Report
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Edit Profile Modal */}
         {isEditingProfile && isOwnProfile && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Edit Profile</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -491,11 +561,11 @@ function ProfilePage() {
           <div>
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">My Listings 📋</h2>
-              
+
               {myListings.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <p className="mb-4">You have not posted any listings yet.</p>
-                  <button 
+                  <button
                     onClick={() => navigate('/new-listing')}
                     className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
                   >
@@ -513,11 +583,10 @@ function ProfilePage() {
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="text-lg font-semibold text-gray-800">{listing.title}</h3>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            listing.status === 'open'
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${listing.status === 'open'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-gray-100 text-gray-800'
-                          }`}
+                            }`}
                         >
                           {listing.status === 'open' ? 'Open' : 'Fixed'}
                         </span>
@@ -541,70 +610,69 @@ function ProfilePage() {
               <div className="bg-white rounded-lg shadow-md p-6 mt-6">
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">My Proposals</h2>
                 <p className="text-sm text-gray-600 mb-4">Listings you&apos;ve expressed interest in fixing</p>
-                
+
                 {interestedListings.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <p className="mb-4">You haven&apos;t expressed interest in any listings yet.</p>
-                  <button 
-                    onClick={() => navigate('/browse-listings')}
-                    className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
-                  >
-                    Browse Listings
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {interestedListings.map((listing) => (
-                    <div
-                      key={listing._id}
-                      className="border-2 rounded-lg p-4 hover:shadow-md transition cursor-pointer"
-                      style={{
-                        borderColor: listing.userInterestStatus === 'accepted' ? '#10b981' : 
-                                    listing.userInterestStatus === 'rejected' ? '#6b7280' : 
-                                    '#3b82f6'
-                      }}
-                      onClick={() => navigate(`/listing/${listing._id}`)}
+                    <button
+                      onClick={() => navigate('/browse-listings')}
+                      className="bg-purple-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-purple-700 transition"
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-semibold text-gray-800">{listing.title}</h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            listing.userInterestStatus === 'accepted'
-                              ? 'bg-green-100 text-green-800'
-                              : listing.userInterestStatus === 'rejected'
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {listing.userInterestStatus === 'accepted' ? 'Accepted' : 
-                           listing.userInterestStatus === 'rejected' ? 'Not Selected' : 
-                           'Pending'}
-                        </span>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mb-2">
-                        Posted by: {listing.postedBy?.name}
-                      </p>
-                      
-                      {listing.userInterestMessage && (
-                        <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2">
-                          <p className="text-xs text-gray-600 mb-1">Your pitch:</p>
-                          <p className="text-sm text-gray-800 italic">&ldquo;{listing.userInterestMessage}&rdquo;</p>
+                      Browse Listings
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {interestedListings.map((listing) => (
+                      <div
+                        key={listing._id}
+                        className="border-2 rounded-lg p-4 hover:shadow-md transition cursor-pointer"
+                        style={{
+                          borderColor: listing.userInterestStatus === 'accepted' ? '#10b981' :
+                            listing.userInterestStatus === 'rejected' ? '#6b7280' :
+                              '#3b82f6'
+                        }}
+                        onClick={() => navigate(`/listing/${listing._id}`)}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-lg font-semibold text-gray-800">{listing.title}</h3>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${listing.userInterestStatus === 'accepted'
+                                ? 'bg-green-100 text-green-800'
+                                : listing.userInterestStatus === 'rejected'
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}
+                          >
+                            {listing.userInterestStatus === 'accepted' ? 'Accepted' :
+                              listing.userInterestStatus === 'rejected' ? 'Not Selected' :
+                                'Pending'}
+                          </span>
                         </div>
-                      )}
-                      
-                      <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
-                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
-                          {listing.category}
-                        </span>
-                        <span>
-                          Applied: {new Date(listing.userInterestDate).toLocaleDateString()}
-                        </span>
+
+                        <p className="text-sm text-gray-600 mb-2">
+                          Posted by: {listing.postedBy?.name}
+                        </p>
+
+                        {listing.userInterestMessage && (
+                          <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2">
+                            <p className="text-xs text-gray-600 mb-1">Your pitch:</p>
+                            <p className="text-sm text-gray-800 italic">&ldquo;{listing.userInterestMessage}&rdquo;</p>
+                          </div>
+                        )}
+
+                        <div className="flex justify-between items-center text-xs text-gray-500 mt-2">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                            {listing.category}
+                          </span>
+                          <span>
+                            Applied: {new Date(listing.userInterestDate).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

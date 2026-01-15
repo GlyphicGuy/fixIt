@@ -25,11 +25,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/listings', require('./routes/listingRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
+  res.json({
+    status: 'OK',
     message: 'Fix-It Hub API is running!',
     timestamp: new Date().toISOString()
   });
@@ -43,7 +44,7 @@ app.use((req, res) => {
 // Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     message: 'Something went wrong!',
     error: process.env.NODE_ENV === 'development' ? err.message : {}
   });

@@ -34,6 +34,11 @@ function Navbar() {
             {isAuthenticated && (
               <>
                 <Link to="/messages" className="hover:text-blue-200 transition">Messages</Link>
+                {user?.role === 'admin' && (
+                  <Link to="/admin" className="text-yellow-300 hover:text-yellow-100 font-semibold transition">
+                    Admin Panel
+                  </Link>
+                )}
                 <Link to="/profile" className="hover:text-blue-200 transition">My Profile</Link>
               </>
             )}
@@ -43,14 +48,14 @@ function Navbar() {
           <div className="flex items-center space-x-3">
             {isAuthenticated ? (
               <>
-                <Link 
+                <Link
                   to="/new-listing"
                   className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
                 >
                   Post Listing
                 </Link>
                 <Link to="/profile" className="flex items-center space-x-2 hover:opacity-90 transition">
-                  <img 
+                  <img
                     src={user?.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`}
                     alt={user?.name}
                     className="w-8 h-8 rounded-full border-2 border-white bg-gray-100"
@@ -66,13 +71,13 @@ function Navbar() {
               </>
             ) : (
               <>
-                <Link 
+                <Link
                   to="/login"
                   className="hover:text-blue-200 transition font-semibold"
                 >
                   Login
                 </Link>
-                <Link 
+                <Link
                   to="/register"
                   className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
                 >

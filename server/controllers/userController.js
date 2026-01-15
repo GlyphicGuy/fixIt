@@ -33,6 +33,7 @@ const registerUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         photoUrl: user.photoUrl,
         skills: user.skills,
         badges: user.badges,
@@ -61,6 +62,7 @@ const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         photoUrl: user.photoUrl,
         skills: user.skills,
         badges: user.badges,
@@ -83,7 +85,7 @@ const loginUser = async (req, res) => {
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
-    
+
     if (user) {
       res.json(user);
     } else {
@@ -104,17 +106,17 @@ const updateUserProfile = async (req, res) => {
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-      
+
       // Handle photo URL update (can be regular URL or base64)
       if (req.body.photoUrl) {
         const photoUrl = req.body.photoUrl;
         const photoSize = (photoUrl.length / (1024 * 1024)).toFixed(2);
         console.log(`Received photo URL. Size: ${photoSize} MB`);
-        
+
         // Basic validation: check if it's a data URL (base64) or regular URL
         const isDataUrl = photoUrl.startsWith('data:image/');
         const isRegularUrl = photoUrl.startsWith('http://') || photoUrl.startsWith('https://');
-        
+
         if (isDataUrl || isRegularUrl) {
           console.log(`Photo URL validation passed. Type: ${isDataUrl ? 'base64' : 'regular URL'}`);
           user.photoUrl = photoUrl;
@@ -123,7 +125,7 @@ const updateUserProfile = async (req, res) => {
           return res.status(400).json({ message: 'Invalid photo URL format' });
         }
       }
-      
+
       user.skills = req.body.skills || user.skills;
       user.bio = req.body.bio || user.bio;
 
@@ -156,11 +158,44 @@ const updateUserProfile = async (req, res) => {
 // @access  Public
 const getFixers = async (req, res) => {
   try {
-    const fixers = await User.find({ 
-      skills: { $exists: true, $not: { $size: 0 } } 
+    const fixers = await User.find({
+      skills: { $exists: true, $not: { $size: 0 } }
     }).select('-password');
-    
+
     res.json(fixers);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Report a user
+// @route   POST /api/users/:id/report
+// @access  Private
+const reportUser = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent self-reporting
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot report yourself' });
+    }
+
+    // Add report
+    const newReport = {
+      reporter: req.user._id,
+      reason,
+      createdAt: Date.now()
+    };
+
+    user.reports.push(newReport);
+    await user.save();
+
+    res.status(201).json({ message: 'User reported successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -171,5 +206,6 @@ module.exports = {
   loginUser,
   getUserProfile,
   updateUserProfile,
-  getFixers
+  getFixers,
+  reportUser
 };

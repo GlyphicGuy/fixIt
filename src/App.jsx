@@ -7,10 +7,11 @@ import HomePage from './pages/HomePage'
 import BrowseListingsPage from './pages/BrowseListingsPage'
 import FindFixersPage from './pages/FindFixersPage'
 import NewListingPage from './pages/NewListingPage'
-import ProfilePage from './pages/ProfilePage'
 import ListingDetailPage from './pages/ListingDetailPage'
-import ConversationPage from './pages/ConversationPage'
+import ProfilePage from './pages/ProfilePage'
 import MessagesPage from './pages/MessagesPage'
+import ConversationPage from './pages/ConversationPage'
+import AdminDashboard from './pages/AdminDashboard'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import './App.css'
@@ -32,6 +33,7 @@ function App() {
           <Route path="/conversation/:listingId" element={<ConversationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
         <Footer />
       </div>

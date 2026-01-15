@@ -12,6 +12,16 @@ connectDB();
 // Sample users (passwords will be hashed automatically)
 const users = [
   {
+    name: 'Admin User',
+    email: 'admin@fixit.com',
+    password: 'adminpassword123',
+    photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
+    role: 'admin',
+    skills: [],
+    badges: ['Moderator'],
+    bio: 'System Administrator'
+  },
+  {
     name: 'Alice Johnson',
     email: 'alice@college.edu',
     password: 'password123',

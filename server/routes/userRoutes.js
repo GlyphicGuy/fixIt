@@ -6,7 +6,8 @@ const {
   loginUser,
   getUserProfile,
   updateUserProfile,
-  getFixers
+  getFixers,
+  reportUser
 } = require('../controllers/userController');
 
 // Public routes
@@ -17,5 +18,6 @@ router.get('/fixers', getFixers);
 
 // Protected routes
 router.put('/profile', protect, updateUserProfile);
+router.post('/:id/report', protect, reportUser);
 
 module.exports = router;

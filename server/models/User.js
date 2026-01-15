@@ -22,10 +22,33 @@ const userSchema = new mongoose.Schema({
   },
   photoUrl: {
     type: String,
-    default: function() {
+    default: function () {
       // Generate unique avatar based on user's email
       return `https://api.dicebear.com/7.x/avataaars/svg?seed=${this.email}`;
     }
+  },
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user'
+  },
+  reports: [{
+    reporter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reason: {
+      type: String,
+      required: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  isFlagged: { // Kept for Admin manual override or high-priority flags
+    type: Boolean,
+    default: false
   },
   skills: [{
     type: String,
@@ -55,7 +78,7 @@ const userSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     next();
   }
@@ -64,7 +87,7 @@ userSchema.pre('save', async function(next) {
 });
 
 // Method to compare passwords
-userSchema.methods.matchPassword = async function(enteredPassword) {
+userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
