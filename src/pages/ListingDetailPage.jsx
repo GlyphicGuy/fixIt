@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getListingById, expressInterest, acceptFixer, markListingFixed } from '../services/listingService';
+import { getListingById, expressInterest, acceptFixer, markListingFixed, flagListing } from '../services/listingService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -10,7 +10,7 @@ function ListingDetailPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { success, error: showError, warning } = useToast();
-  
+
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,6 +19,8 @@ function ListingDetailPage() {
   const [sending, setSending] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportReason, setReportReason] = useState('');
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
@@ -87,31 +89,45 @@ function ListingDetailPage() {
   };
 
   const handleMarkAsFixed = () => {
-    if (listing.acceptedFixer) {
-      // Show rating modal if there's an accepted fixer
-      setShowRatingModal(true);
-    } else {
-      // Just close the listing without rating
-      handleCloseWithoutRating();
+    if (!listing.acceptedFixer) {
+      // If no accepted fixer (maybe fixed offline/self), just warn
+      // or we can allow marking fixed without a fixer if they want
     }
-  };
 
-  const handleCloseWithoutRating = async () => {
     setConfirmModal({
       isOpen: true,
-      title: 'Mark as Fixed',
-      message: 'Mark this listing as fixed?',
+      title: 'Mark as Fixed?',
+      message: 'This will close the listing and mark it as completed. You cannot undo this action.',
       onConfirm: async () => {
         try {
           await markListingFixed(id);
           success('Listing marked as fixed!');
-          fetchListing();
+          fetchListing(); // Refresh
         } catch (err) {
-          console.error('Error marking listing as fixed:', err);
-          showError('Failed to mark listing as fixed. Please try again.');
+          showError(err.response?.data?.message || 'Failed to update listing');
         }
       }
     });
+  };
+
+  const handleReportListing = () => {
+    setReportReason('');
+    setShowReportModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportReason.trim()) {
+      showError('Please provide a reason for the report');
+      return;
+    }
+
+    try {
+      await flagListing(id, reportReason);
+      success('Listing reported to admins.');
+      setShowReportModal(false);
+    } catch (err) {
+      showError(err.response?.data?.message || 'Failed to report listing');
+    }
   };
 
   const handleSubmitRating = async () => {
@@ -192,11 +208,10 @@ function ListingDetailPage() {
                   <span className={`${categoryColors[listing.category]} px-3 py-1 rounded-full text-sm font-semibold`}>
                     {listing.category}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    listing.status === 'open' 
-                      ? 'bg-green-100 text-green-800' 
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${listing.status === 'open'
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-800'
-                  }`}>
+                    }`}>
                     {listing.status === 'open' ? 'Open' : 'Fixed'}
                   </span>
                 </div>
@@ -256,6 +271,12 @@ function ListingDetailPage() {
                         Message Poster
                       </button>
                     )}
+                    <button
+                      onClick={handleReportListing}
+                      className="px-6 py-3 border-2 border-red-200 text-red-600 rounded-lg font-semibold hover:bg-red-50 transition text-center mt-2"
+                    >
+                      🚩 Report Listing
+                    </button>
                   </div>
                 )}
 
@@ -303,13 +324,12 @@ function ListingDetailPage() {
                   {listing.interestedFixers.map((item) => (
                     <div
                       key={item._id}
-                      className={`p-4 border-2 rounded-lg ${
-                        item.status === 'accepted' 
-                          ? 'border-green-500 bg-green-50' 
+                      className={`p-4 border-2 rounded-lg ${item.status === 'accepted'
+                          ? 'border-green-500 bg-green-50'
                           : item.status === 'rejected'
-                          ? 'border-gray-300 bg-gray-50 opacity-60'
-                          : 'border-blue-200 bg-blue-50'
-                      }`}
+                            ? 'border-gray-300 bg-gray-50 opacity-60'
+                            : 'border-blue-200 bg-blue-50'
+                        }`}
                     >
                       <div className="flex items-start space-x-3 mb-3">
                         <img
@@ -318,7 +338,7 @@ function ListingDetailPage() {
                           className="w-12 h-12 rounded-full object-cover"
                         />
                         <div className="flex-1">
-                          <Link 
+                          <Link
                             to={`/profile/${item.fixer?._id}`}
                             className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
                           >
@@ -347,7 +367,7 @@ function ListingDetailPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       {item.message && (
                         <div className="bg-white p-3 rounded border border-gray-200 mb-3">
                           <p className="text-sm text-gray-700 italic">&ldquo;{item.message}&rdquo;</p>
@@ -356,7 +376,7 @@ function ListingDetailPage() {
                           </p>
                         </div>
                       )}
-                      
+
                       {item.status === 'pending' && !listing.acceptedFixer && (
                         <div className="flex space-x-2">
                           <button
@@ -373,13 +393,13 @@ function ListingDetailPage() {
                           </button>
                         </div>
                       )}
-                      
+
                       {item.status === 'accepted' && (
                         <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-center">
                           <p className="text-green-800 font-semibold text-sm">Accepted</p>
                         </div>
                       )}
-                      
+
                       {item.status === 'rejected' && (
                         <div className="text-gray-500 text-sm text-center">
                           Not selected
@@ -404,7 +424,7 @@ function ListingDetailPage() {
                     className="w-16 h-16 rounded-full object-cover border-2 border-green-500"
                   />
                   <div className="flex-1">
-                    <Link 
+                    <Link
                       to={`/profile/${listing.acceptedFixer._id}`}
                       className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-lg"
                     >
@@ -424,7 +444,7 @@ function ListingDetailPage() {
                     )}
                   </div>
                 </div>
-                
+
                 {/* Message Button - Show to both poster and fixer */}
                 {user && (user._id === listing.postedBy?._id || user._id === listing.acceptedFixer._id) && (
                   <button
@@ -461,7 +481,7 @@ function ListingDetailPage() {
             <p className="text-gray-600 mb-4">
               How would you rate {listing.acceptedFixer?.name}&apos;s work?
             </p>
-            
+
             {/* Star Rating */}
             <div className="flex justify-center space-x-2 mb-6">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -474,11 +494,11 @@ function ListingDetailPage() {
                 </button>
               ))}
             </div>
-            
+
             <p className="text-center text-gray-600 mb-6">
               Rating: {rating} out of 5 stars
             </p>
-            
+
             {/* Buttons */}
             <div className="flex space-x-3">
               <button
@@ -492,6 +512,41 @@ function ListingDetailPage() {
                 className="px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full animate-scale-in">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Report Listing</h2>
+            <p className="text-gray-600 mb-4">
+              Please tell us why you are reporting this listing. We review all reports carefully.
+            </p>
+            
+            <textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="e.g., Inappropriate content, scam, wrong category..."
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none h-32 mb-6 resize-none"
+            />
+            
+            {/* Buttons */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowReportModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitReport}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold shadow-md"
+              >
+                Submit Report
               </button>
             </div>
           </div>

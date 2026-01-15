@@ -50,6 +50,15 @@ const listingSchema = new mongoose.Schema({
   acceptedFixer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  reports: [{
+    reason: { type: String, required: true },
+    reportedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  isFlagged: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true

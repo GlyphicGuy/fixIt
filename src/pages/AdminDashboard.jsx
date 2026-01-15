@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getAdminStats, getAllUsers, deleteUser, unflagUser, dismissReport } from '../services/adminService';
+import { getAdminStats, getAllUsers, deleteUser, unflagUser, dismissReport, getAllListings, deleteListingAdmin, unflagListing, dismissListingReport } from '../services/adminService';
 import { useNavigate } from 'react-router-dom';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -11,6 +11,7 @@ const AdminDashboard = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState(null);
     const [users, setUsers] = useState([]);
+    const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('users');
 
@@ -33,8 +34,10 @@ const AdminDashboard = () => {
         try {
             const statsData = await getAdminStats();
             const usersData = await getAllUsers();
+            const listingsData = await getAllListings();
             setStats(statsData);
             setUsers(usersData);
+            setListings(listingsData);
         } catch (err) {
             console.error('Error loading admin data:', err);
             showError('Failed to load admin data');
@@ -118,16 +121,81 @@ const AdminDashboard = () => {
         );
     };
 
+    const handleDeleteListing = (listingId) => {
+        showConfirm(
+            'Delete Listing?',
+            'Are you sure you want to delete this listing? This action cannot be undone.',
+            async () => {
+                try {
+                    await deleteListingAdmin(listingId);
+                    success('Listing removed successfully');
+                    loadData();
+                } catch (err) {
+                    console.error('Error deleting listing:', err);
+                    showError('Failed to remove listing');
+                }
+            },
+            'danger'
+        );
+    };
+
+    const handleUnflagListing = (listingId) => {
+        showConfirm(
+            'Remove Flag?',
+            'Are you sure you want to restore this listing to good standing?',
+            async () => {
+                try {
+                    await unflagListing(listingId);
+                    success('Listing flag removed');
+                    loadData();
+                } catch (err) {
+                    console.error('Error unflagging listing:', err);
+                    showError('Failed to remove flag');
+                }
+            },
+            'default'
+        );
+    };
+
+    const handleDismissListingReport = (listingId, reportId) => {
+        showConfirm(
+            'Dismiss Report?',
+            'This report will be deleted from the listing. Continue?',
+            async () => {
+                try {
+                    await dismissListingReport(listingId, reportId);
+                    success('Report dismissed');
+                    loadData();
+                } catch (err) {
+                    console.error('Error dismissing listing report:', err);
+                    showError('Failed to dismiss report');
+                }
+            },
+            'warning'
+        );
+    };
 
     const allReports = React.useMemo(() => {
-        return users.flatMap(u =>
+        const userReports = users.flatMap(u =>
             (u.reports || []).map(r => ({
                 ...r,
-                reportedUser: u,
-                key: `${u._id}-${r._id || r.createdAt}`
+                type: 'user',
+                target: u,
+                key: `user-${u._id}-${r._id || r.createdAt}`
             }))
-        ).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }, [users]);
+        );
+
+        const listingReports = listings.flatMap(l =>
+            (l.reports || []).map(r => ({
+                ...r,
+                type: 'listing',
+                target: l,
+                key: `listing-${l._id}-${r._id || r.createdAt}`
+            }))
+        );
+
+        return [...userReports, ...listingReports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }, [users, listings]);
 
     if (loading) {
         return (
@@ -166,8 +234,10 @@ const AdminDashboard = () => {
                     </div>
                     <div className="bg-white overflow-hidden shadow rounded-lg">
                         <div className="px-4 py-5 sm:p-6">
-                            <dt className="text-sm font-medium text-gray-500 truncate">Flagged Users</dt>
-                            <dd className="mt-1 text-3xl font-semibold text-red-600">{stats?.flaggedUsers}</dd>
+                            <dt className="text-sm font-medium text-gray-500 truncate">Flagged Items</dt>
+                            <dd className="mt-1 text-3xl font-semibold text-red-600">
+                                {((stats?.flaggedUsers || 0) + (stats?.flaggedListings || 0)) || 0}
+                            </dd>
                         </div>
                     </div>
                 </div>
@@ -178,17 +248,31 @@ const AdminDashboard = () => {
                         <button
                             onClick={() => setActiveTab('users')}
                             className={`${activeTab === 'users'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
                         >
                             Users & Moderation
                         </button>
                         <button
+                            onClick={() => setActiveTab('listings')}
+                            className={`${activeTab === 'listings'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                        >
+                            Listings
+                            {listings.some(l => l.isFlagged || (l.reports && l.reports.length > 0)) && (
+                                <span className="ml-2 bg-red-100 text-red-600 py-0.5 px-2.5 rounded-full text-xs font-semibold">
+                                    !
+                                </span>
+                            )}
+                        </button>
+                        <button
                             onClick={() => setActiveTab('reports')}
                             className={`${activeTab === 'reports'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                 } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
                         >
                             Recent Reports
@@ -297,6 +381,85 @@ const AdminDashboard = () => {
                             </table>
                         </div>
                     </div>
+                ) : activeTab === 'listings' ? (
+                    /* Listings Table */
+                    <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+                        <div className="px-4 py-5 sm:px-6">
+                            <h3 className="text-lg leading-6 font-medium text-gray-900">Listing Moderation</h3>
+                            <p className="mt-1 max-w-2xl text-sm text-gray-500">Review flagged listings and content.</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Listing</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posted By</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports/Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {listings.map((l) => (
+                                        <tr key={l._id} className={l.isFlagged ? "bg-red-50" : ""}>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center">
+                                                    <div className="h-10 w-10 flex-shrink-0">
+                                                        <img className="h-10 w-10 rounded object-cover" src={l.photoUrl} alt="" />
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-medium text-gray-900">{l.title}</div>
+                                                        <div className="text-sm text-gray-500">{l.category}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {l.postedBy?.name || 'Unknown'}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {l.isFlagged || (l.reports && l.reports.length > 0) ? (
+                                                    <div>
+                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                                            Flagged
+                                                        </span>
+                                                        {l.reports && l.reports.length > 0 && (
+                                                            <div className="mt-1 text-xs text-red-600">
+                                                                <span className="font-bold">{l.reports.length} Reports</span>
+                                                                <div className="bg-white bg-opacity-50 p-1 rounded mt-1 max-w-xs">
+                                                                    &quot;{l.reports[l.reports.length - 1].reason}&quot;
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                        Safe
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex justify-end space-x-2">
+                                                    {l.isFlagged && (
+                                                        <button
+                                                            onClick={() => handleUnflagListing(l._id)}
+                                                            className="text-gray-400 hover:text-green-600 text-xs uppercase"
+                                                        >
+                                                            Unflag
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        onClick={() => handleDeleteListing(l._id)}
+                                                        className="text-red-600 hover:text-red-900 font-bold"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 ) : (
                     /* Reports List View */
                     <div className="bg-white shadow overflow-hidden sm:rounded-lg">
@@ -317,13 +480,13 @@ const AdminDashboard = () => {
                                             {/* Left: Report Details */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-2 mb-2">
-                                                    <span className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-red-100 text-red-500">
+                                                    <span className={`inline-flex items-center justify-center h-8 w-8 rounded-full ${report.type === 'listing' ? 'bg-orange-100 text-orange-500' : 'bg-red-100 text-red-500'}`}>
                                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                         </svg>
                                                     </span>
                                                     <h4 className="text-sm font-bold text-gray-900">
-                                                        Report against <span className="text-blue-600">{report.reportedUser.name}</span>
+                                                        Report against {report.type === 'user' ? 'User' : 'Listing'} <span className="text-blue-600">{report.type === 'user' ? report.target.name : report.target.title}</span>
                                                         <span className="text-gray-400 font-normal mx-2">•</span>
                                                         <span className="text-gray-500 font-normal text-xs">{new Date(report.createdAt).toLocaleString()}</span>
                                                     </h4>
@@ -333,7 +496,7 @@ const AdminDashboard = () => {
                                                         &quot;{report.reason}&quot;
                                                     </p>
                                                     <p className="mt-2 text-xs text-gray-500">
-                                                        Reported User ID: <span className="font-mono bg-gray-100 px-1">{report.reportedUser._id}</span>
+                                                        Target ID: <span className="font-mono bg-gray-100 px-1">{report.target._id}</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -341,16 +504,22 @@ const AdminDashboard = () => {
                                             {/* Right: Actions */}
                                             <div className="flex-shrink-0 flex flex-col items-end space-y-2">
                                                 <button
-                                                    onClick={() => handleDismissReport(report.reportedUser._id, report._id)}
+                                                    onClick={() => report.type === 'user'
+                                                        ? handleDismissReport(report.target._id, report._id)
+                                                        : handleDismissListingReport(report.target._id, report._id)
+                                                    }
                                                     className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
                                                     Dismiss
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteUser(report.reportedUser._id)}
+                                                    onClick={() => report.type === 'user'
+                                                        ? handleDeleteUser(report.target._id)
+                                                        : handleDeleteListing(report.target._id)
+                                                    }
                                                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                                 >
-                                                    Ban User
+                                                    {report.type === 'user' ? 'Ban User' : 'Delete Listing'}
                                                 </button>
                                             </div>
 

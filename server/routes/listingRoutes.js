@@ -11,7 +11,8 @@ const {
   getUserListings,
   getInterestedListings,
   acceptFixer,
-  markListingFixed
+  markListingFixed,
+  flagListing
 } = require('../controllers/listingController');
 
 // Public routes
@@ -27,5 +28,6 @@ router.delete('/:id', protect, deleteListing);
 router.post('/:id/interest', protect, addInterestedFixer);
 router.post('/:id/accept/:fixerId', protect, acceptFixer);
 router.post('/:id/mark-fixed', protect, markListingFixed);
+router.put('/:id/flag', protect, flagListing);
 
 module.exports = router;

@@ -59,3 +59,9 @@ export const markListingFixed = async (listingId, rating = null, fixerId = null)
   const { data } = await api.post(`/listings/${listingId}/mark-fixed`, { rating, fixerId });
   return data;
 };
+
+// Flag a listing
+export const flagListing = async (id, reason) => {
+  const { data } = await api.put(`/listings/${id}/flag`, { reason });
+  return data;
+};

@@ -41,8 +41,27 @@ const flagUser = async (req, res) => {
         const user = await User.findById(req.params.id);
 
         if (user) {
+            const reason = req.body.reason || 'Flagged by community';
+            const reporterId = req.user._id;
+
+            // Check if user has already reported this target user
+            const alreadyReported = user.reports.find(
+                (r) => r.reporter.toString() === reporterId.toString()
+            );
+
+            if (alreadyReported) {
+                return res.status(400).json({ message: 'You have already reported this user' });
+            }
+
+            user.reports.push({
+                reporter: reporterId,
+                reason: reason
+            });
+            
             user.isFlagged = true;
-            user.flagReason = req.body.reason || 'Flagged by community';
+            // user.flagReason might be deprecated in favor of reports array, keeping for backward compatibility if needed, 
+            // otherwise just relying on reports is better. Let's keep isFlagged boolean.
+            
             await user.save();
             res.json({ message: 'User flagged for review' });
         } else {
@@ -68,15 +87,106 @@ const getAdminStats = async (req, res) => {
             ]
         });
 
+        const flaggedListings = await Listing.countDocuments({
+            $or: [
+                { isFlagged: true },
+                { 'reports.0': { $exists: true } }
+            ]
+        });
+
         res.json({
             totalUsers: userCount,
             totalListings: listingCount,
-            flaggedUsers
+            flaggedUsers,
+            flaggedListings
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
+// @desc    Get all listings (admin only - populated with reports)
+// @route   GET /api/admin/listings
+// @access  Private/Admin
+const getAllListings = async (req, res) => {
+    try {
+        const listings = await Listing.find({})
+            .populate('postedBy', 'name email')
+            .populate('reports.reportedBy', 'name email');
+        res.json(listings);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete listing (admin force delete)
+// @route   DELETE /api/admin/listings/:id
+// @access  Private/Admin
+const deleteListing = async (req, res) => {
+    try {
+        const listing = await Listing.findById(req.params.id);
+
+        if (listing) {
+            await listing.deleteOne();
+            res.json({ message: 'Listing removed' });
+        } else {
+            res.status(404).json({ message: 'Listing not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Unflag a listing
+// @route   PUT /api/admin/listings/:id/unflag
+// @access  Private/Admin
+const unflagListing = async (req, res) => {
+    try {
+        const listing = await Listing.findById(req.params.id);
+
+        if (listing) {
+            listing.isFlagged = false;
+            await listing.save();
+            res.json({ message: 'Listing unflagged successfully' });
+        } else {
+            res.status(404).json({ message: 'Listing not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Dismiss a specific listing report
+// @route   DELETE /api/admin/listings/:listingId/reports/:reportId
+// @access  Private/Admin
+const dismissListingReport = async (req, res) => {
+    try {
+        const { listingId, reportId } = req.params;
+        const listing = await Listing.findById(listingId);
+
+        if (listing) {
+            const initialLength = listing.reports.length;
+            listing.reports = listing.reports.filter(report => report._id.toString() !== reportId);
+
+            if (listing.reports.length === initialLength) {
+                return res.status(404).json({ message: 'Report not found' });
+            }
+
+            // If no reports left, unflag it automatically
+            if (listing.reports.length === 0) {
+                listing.isFlagged = false;
+            }
+
+            await listing.save();
+            res.json({ message: 'Report dismissed successfully' });
+        } else {
+            res.status(404).json({ message: 'Listing not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 // @desc    Unflag a user
 // @route   PUT /api/admin/users/:id/unflag
@@ -131,5 +241,9 @@ module.exports = {
     flagUser,
     unflagUser,
     dismissReport,
-    getAdminStats
+    getAdminStats,
+    getAllListings,
+    deleteListing,
+    unflagListing,
+    dismissListingReport
 };

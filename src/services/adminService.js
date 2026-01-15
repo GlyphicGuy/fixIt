@@ -29,3 +29,23 @@ export const dismissReport = async (userId, reportId) => {
     const response = await api.delete(`/admin/users/${userId}/reports/${reportId}`);
     return response.data;
 };
+
+export const getAllListings = async () => {
+    const response = await api.get('/admin/listings');
+    return response.data;
+};
+
+export const deleteListingAdmin = async (listingId) => {
+    const response = await api.delete(`/admin/listings/${listingId}`);
+    return response.data;
+};
+
+export const unflagListing = async (listingId) => {
+    const response = await api.put(`/admin/listings/${listingId}/unflag`);
+    return response.data;
+};
+
+export const dismissListingReport = async (listingId, reportId) => {
+    const response = await api.delete(`/admin/listings/${listingId}/reports/${reportId}`);
+    return response.data;
+};
