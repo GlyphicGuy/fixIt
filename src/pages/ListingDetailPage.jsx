@@ -16,11 +16,13 @@ function ListingDetailPage() {
   const [error, setError] = useState('');
   const [showContactForm, setShowContactForm] = useState(false);
   const [message, setMessage] = useState('');
+  const [proposedPrice, setProposedPrice] = useState('');
   const [sending, setSending] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [sortBy, setSortBy] = useState('date'); // 'date', 'price-low', 'price-high'
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
@@ -53,11 +55,17 @@ function ListingDetailPage() {
       return;
     }
 
+    if (!proposedPrice || proposedPrice <= 0) {
+      warning('Please enter a valid proposed price');
+      return;
+    }
+
     try {
       setSending(true);
-      await expressInterest(id, message);
+      await expressInterest(id, message, proposedPrice);
       success('Interest expressed! The poster will be notified.');
       setMessage('');
+      setProposedPrice('');
       setShowContactForm(false);
       fetchListing(); // Refresh listing
     } catch (err) {
@@ -144,6 +152,23 @@ function ListingDetailPage() {
 
   const isOwner = isAuthenticated && user && listing && listing.postedBy?._id === user._id;
 
+  // Sort interested fixers based on selected criteria
+  const sortedInterestedFixers = React.useMemo(() => {
+    if (!listing?.interestedFixers) return [];
+
+    const fixers = [...listing.interestedFixers];
+
+    switch (sortBy) {
+      case 'price-low':
+        return fixers.sort((a, b) => (a.proposedPrice || 0) - (b.proposedPrice || 0));
+      case 'price-high':
+        return fixers.sort((a, b) => (b.proposedPrice || 0) - (a.proposedPrice || 0));
+      case 'date':
+      default:
+        return fixers.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+  }, [listing?.interestedFixers, sortBy]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -209,8 +234,8 @@ function ListingDetailPage() {
                     {listing.category}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${listing.status === 'open'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-800'
                     }`}>
                     {listing.status === 'open' ? 'Open' : 'Fixed'}
                   </span>
@@ -284,18 +309,43 @@ function ListingDetailPage() {
                 {showContactForm && (
                   <div className="mt-6 p-6 bg-blue-50 rounded-lg border border-blue-200">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Express Interest</h3>
-                    <textarea
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Let them know you can help! Describe your experience..."
-                      rows="4"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-                    />
+
+                    {/* Proposed Price Input */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Proposed Price (₹)
+                      </label>
+                      <input
+                        type="number"
+                        value={proposedPrice}
+                        onChange={(e) => setProposedPrice(e.target.value)}
+                        placeholder="Enter your price estimate"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter your estimated cost for this repair</p>
+                    </div>
+
+                    {/* Message Textarea */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Message
+                      </label>
+                      <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Let them know you can help! Describe your experience..."
+                        rows="4"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+
                     <div className="flex space-x-3">
                       <button
                         onClick={handleExpressInterest}
                         className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
-                        disabled={sending || !message.trim()}
+                        disabled={sending || !message.trim() || !proposedPrice}
                       >
                         {sending ? 'Sending...' : 'Send Message'}
                       </button>
@@ -317,18 +367,32 @@ function ListingDetailPage() {
             {/* Interested Fixers - Only visible to poster */}
             {isOwner && listing.interestedFixers && listing.interestedFixers.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">
-                  Interested Fixers ({listing.interestedFixers.length})
-                </h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Interested Fixers ({listing.interestedFixers.length})
+                  </h2>
+
+                  {/* Sort Dropdown */}
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="date">Latest First</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                  </select>
+                </div>
+
                 <div className="space-y-4">
-                  {listing.interestedFixers.map((item) => (
+                  {sortedInterestedFixers.map((item) => (
                     <div
                       key={item._id}
                       className={`p-4 border-2 rounded-lg ${item.status === 'accepted'
-                          ? 'border-green-500 bg-green-50'
-                          : item.status === 'rejected'
-                            ? 'border-gray-300 bg-gray-50 opacity-60'
-                            : 'border-blue-200 bg-blue-50'
+                        ? 'border-green-500 bg-green-50'
+                        : item.status === 'rejected'
+                          ? 'border-gray-300 bg-gray-50 opacity-60'
+                          : 'border-blue-200 bg-blue-50'
                         }`}
                     >
                       <div className="flex items-start space-x-3 mb-3">
@@ -367,6 +431,16 @@ function ListingDetailPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* Proposed Price Display */}
+                      {item.proposedPrice > 0 && (
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-semibold text-gray-700">Proposed Price:</span>
+                            <span className="text-xl font-bold text-green-600">₹{item.proposedPrice}</span>
+                          </div>
+                        </div>
+                      )}
 
                       {item.message && (
                         <div className="bg-white p-3 rounded border border-gray-200 mb-3">
@@ -526,14 +600,14 @@ function ListingDetailPage() {
             <p className="text-gray-600 mb-4">
               Please tell us why you are reporting this listing. We review all reports carefully.
             </p>
-            
+
             <textarea
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
               placeholder="e.g., Inappropriate content, scam, wrong category..."
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none h-32 mb-6 resize-none"
             />
-            
+
             {/* Buttons */}
             <div className="flex space-x-3">
               <button

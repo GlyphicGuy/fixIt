@@ -57,11 +57,11 @@ const flagUser = async (req, res) => {
                 reporter: reporterId,
                 reason: reason
             });
-            
+
             user.isFlagged = true;
             // user.flagReason might be deprecated in favor of reports array, keeping for backward compatibility if needed, 
             // otherwise just relying on reports is better. Let's keep isFlagged boolean.
-            
+
             await user.save();
             res.json({ message: 'User flagged for review' });
         } else {

@@ -37,6 +37,10 @@ const listingSchema = new mongoose.Schema({
       ref: 'User'
     },
     message: String,
+    proposedPrice: {
+      type: Number,
+      min: 0
+    },
     status: {
       type: String,
       enum: ['pending', 'accepted', 'rejected'],

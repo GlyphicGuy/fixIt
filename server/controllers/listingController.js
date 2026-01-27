@@ -168,7 +168,8 @@ const addInterestedFixer = async (req, res) => {
 
     listing.interestedFixers.push({
       fixer: req.user._id,
-      message: req.body.message || ''
+      message: req.body.message || '',
+      proposedPrice: req.body.proposedPrice || 0
     });
 
     await listing.save();
@@ -219,7 +220,8 @@ const getInterestedListings = async (req, res) => {
         ...listing.toObject(),
         userInterestStatus: userInterest?.status || 'pending',
         userInterestMessage: userInterest?.message || '',
-        userInterestDate: userInterest?.createdAt
+        userInterestDate: userInterest?.createdAt,
+        userProposedPrice: userInterest?.proposedPrice || 0
       };
     });
 

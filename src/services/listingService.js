@@ -31,8 +31,8 @@ export const deleteListing = async (id) => {
 };
 
 // Express interest in a listing
-export const expressInterest = async (id, message) => {
-  const { data } = await api.post(`/listings/${id}/interest`, { message });
+export const expressInterest = async (id, message, proposedPrice) => {
+  const { data } = await api.post(`/listings/${id}/interest`, { message, proposedPrice });
   return data;
 };
 

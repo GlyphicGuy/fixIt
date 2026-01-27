@@ -584,8 +584,8 @@ function ProfilePage() {
                         <h3 className="text-lg font-semibold text-gray-800">{listing.title}</h3>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold ${listing.status === 'open'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
                             }`}
                         >
                           {listing.status === 'open' ? 'Open' : 'Fixed'}
@@ -638,17 +638,25 @@ function ProfilePage() {
                           <h3 className="text-lg font-semibold text-gray-800">{listing.title}</h3>
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-semibold ${listing.userInterestStatus === 'accepted'
-                                ? 'bg-green-100 text-green-800'
-                                : listing.userInterestStatus === 'rejected'
-                                  ? 'bg-gray-100 text-gray-800'
-                                  : 'bg-blue-100 text-blue-800'
+                              ? 'bg-green-100 text-green-800'
+                              : listing.userInterestStatus === 'rejected'
+                                ? 'bg-gray-100 text-gray-600'
+                                : 'bg-blue-100 text-blue-800'
                               }`}
                           >
-                            {listing.userInterestStatus === 'accepted' ? 'Accepted' :
-                              listing.userInterestStatus === 'rejected' ? 'Not Selected' :
-                                'Pending'}
+                            {listing.userInterestStatus === 'accepted' ? 'Accepted ✓' :
+                              listing.userInterestStatus === 'rejected' ? 'Rejected' :
+                                'Pending...'}
                           </span>
                         </div>
+
+                        {/* Proposed Price */}
+                        {listing.userProposedPrice > 0 && (
+                          <div className="mb-2 flex items-center space-x-2">
+                            <span className="text-sm text-gray-600">Your offer:</span>
+                            <span className="text-lg font-bold text-green-600">₹{listing.userProposedPrice}</span>
+                          </div>
+                        )}
 
                         <p className="text-sm text-gray-600 mb-2">
                           Posted by: {listing.postedBy?.name}
