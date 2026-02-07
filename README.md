@@ -1,6 +1,6 @@
 # Fix-It Hub 🔧
 
-> **A full-stack campus repair marketplace connecting students who need repairs with skilled fixers, promoting sustainability and the circular economy.**
+**A full-stack campus repair marketplace connecting students who need repairs with skilled fixers, promoting sustainability and the circular economy.**
 
 **Live Demo:** https://fixit-bmsce.netlify.app  
 **Backend API:** https://fixit-01yy.onrender.com
