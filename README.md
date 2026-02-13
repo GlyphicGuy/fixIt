@@ -874,5 +874,5 @@ Fix-It Hub promotes the circular economy by:
 
 For questions or feedback, contact us at support@fixithub.edu
 
----
+
   _**Copyright 2026**_
