@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getConversation, sendMessage, markAsRead } from '../services/messageService';
+import { getConversation, joinConversation, leaveConversation, sendMessage, setTyping, onMessageReceived, onUserTyping, onMessageRead, onUserOnline, onUserOffline, removeListener, markAsRead } from '../services/messageService';
 import { getListingById } from '../services/listingService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import socketService from '../services/socketService';
 
 const ConversationPage = () => {
   const { listingId } = useParams();
@@ -14,11 +15,16 @@ const ConversationPage = () => {
   const { showToast } = useToast();
 
   const [conversation, setConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [listing, setListing] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [otherUserOnline, setOtherUserOnline] = useState(false);
+  const [readBy, setReadBy] = useState(new Map()); // userId -> timestamp
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   const otherUser = conversation?.participants?.find(p => p._id !== user?._id);
 
@@ -32,14 +38,90 @@ const ConversationPage = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [conversation?.messages]);
+  }, [messages]);
 
+  // Setup WebSocket listeners
   useEffect(() => {
-    // Mark messages as read when conversation loads
-    if (conversation?._id) {
-      markAsRead(conversation._id).catch(err => console.error('Failed to mark as read:', err));
+    if (!conversation?._id) return;
+
+    const handleMessageReceived = (data) => {
+      setMessages(prev => [...prev, {
+        id: data.id,
+        sender: data.sender,
+        content: data.content,
+        createdAt: data.createdAt,
+        read: data.read
+      }]);
+      scrollToBottom();
+    };
+
+    const handleUserTyping = (data) => {
+      if (data.userId === otherUserId) {
+        setTypingUsers(prev => {
+          const updated = new Set(prev);
+          if (data.isTyping) {
+            updated.add(data.userId);
+          } else {
+            updated.delete(data.userId);
+          }
+          return updated;
+        });
+      }
+    };
+
+    const handleUserOnline = (data) => {
+      if (data.userId === otherUserId) {
+        setOtherUserOnline(true);
+      }
+    };
+
+    const handleUserOffline = (data) => {
+      if (data.userId === otherUserId) {
+        setOtherUserOnline(false);
+      }
+    };
+
+    const handleMessageRead = (data) => {
+      if (data.userId === otherUserId) {
+        setReadBy(prev => new Map(prev).set(otherUserId, data.readAt));
+        // Update messages to show read status
+        setMessages(prev => prev.map(msg => 
+          data.messageIds.includes(msg.id) ? { ...msg, read: true } : msg
+        ));
+      }
+    };
+
+    onMessageReceived(handleMessageReceived);
+    onUserTyping(handleUserTyping);
+    onUserOnline(handleUserOnline);
+    onUserOffline(handleUserOffline);
+    onMessageRead(handleMessageRead);
+
+    return () => {
+      removeListener('message:received', handleMessageReceived);
+      removeListener('user:typing', handleUserTyping);
+      removeListener('user:online', handleUserOnline);
+      removeListener('user:offline', handleUserOffline);
+      removeListener('message:read', handleMessageRead);
+    };
+  }, [conversation?._id, otherUserId]);
+
+  // Auto-mark messages as read
+  useEffect(() => {
+    if (messages.length === 0 || !conversation?._id) return;
+
+    const unreadMessages = messages.filter(
+      msg => msg.sender._id !== user?._id && !msg.read
+    );
+
+    if (unreadMessages.length > 0) {
+      const timer = setTimeout(() => {
+        markAsRead(conversation._id, unreadMessages.map(m => m.id));
+      }, 500);
+
+      return () => clearTimeout(timer);
     }
-  }, [conversation?._id]);
+  }, [messages, conversation?._id, user?._id]);
 
   const loadData = async () => {
     try {
@@ -48,8 +130,17 @@ const ConversationPage = () => {
         getConversation(listingId, otherUserId),
         getListingById(listingId)
       ]);
-      setConversation(convData);
+      
+      setConversation(convData.conversation);
+      setMessages(convData.messages || []);
       setListing(listingData);
+
+      // Join conversation via WebSocket
+      setTimeout(() => {
+        if (socketService.isConnected()) {
+          joinConversation(convData.conversation._id, listingId, otherUserId);
+        }
+      }, 100);
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to load conversation', 'error');
       navigate(`/listing/${listingId}`);
@@ -62,22 +153,62 @@ const ConversationPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = async (e) => {
+  const handleSendMessage = (e) => {
     e.preventDefault();
     
     if (!newMessage.trim()) return;
 
     try {
       setSending(true);
-      const updatedConversation = await sendMessage(conversation._id, newMessage);
-      setConversation(updatedConversation);
+      sendMessage(conversation._id, newMessage);
       setNewMessage('');
+      setTypingUsers(prev => {
+        const updated = new Set(prev);
+        updated.delete(otherUserId);
+        return updated;
+      });
     } catch (error) {
       showToast(error.response?.data?.message || 'Failed to send message', 'error');
     } finally {
       setSending(false);
     }
   };
+
+  const handleMessageChange = (e) => {
+    const text = e.target.value;
+    setNewMessage(text);
+
+    // Emit typing indicator
+    if (text.length > 0) {
+      setTyping(conversation._id, true);
+      
+      // Clear previous timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Stop typing after 3 seconds of inactivity
+      typingTimeoutRef.current = setTimeout(() => {
+        setTyping(conversation._id, false);
+      }, 3000);
+    } else {
+      setTyping(conversation._id, false);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (conversation?._id) {
+        leaveConversation(conversation._id);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [conversation?._id]);
 
   const formatTime = (date) => {
     const now = new Date();
@@ -134,15 +265,29 @@ const ConversationPage = () => {
             
             <div className="flex-1">
               <div className="flex items-center space-x-3">
-                {otherUser?.photoUrl && (
-                  <img
-                    src={otherUser.photoUrl}
-                    alt={otherUser.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                )}
+                <div className="relative">
+                  {otherUser?.photoUrl && (
+                    <img
+                      src={otherUser.photoUrl}
+                      alt={otherUser.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  )}
+                  {otherUserOnline && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                  )}
+                </div>
                 <div>
                   <h1 className="text-lg font-bold text-gray-900">{otherUser?.name}</h1>
+                  <p className="text-xs text-gray-600">
+                    {typingUsers.has(otherUserId) ? (
+                      <span className="text-blue-600 font-medium">typing...</span>
+                    ) : otherUserOnline ? (
+                      <span className="text-green-600">online</span>
+                    ) : (
+                      <span>offline</span>
+                    )}
+                  </p>
                   <p className="text-sm text-gray-600 truncate max-w-md">
                     Re: {listing?.title}
                   </p>
@@ -163,7 +308,7 @@ const ConversationPage = () => {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-5xl mx-auto space-y-4">
-          {conversation?.messages?.length === 0 ? (
+          {messages?.length === 0 ? (
             <div className="text-center py-12">
               <div className="bg-white rounded-lg shadow-sm p-8 max-w-md mx-auto">
                 <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,11 +319,11 @@ const ConversationPage = () => {
               </div>
             </div>
           ) : (
-            conversation.messages.map((msg, index) => {
+            messages.map((msg) => {
               const isOwnMessage = msg.sender._id === user?._id;
               return (
                 <div
-                  key={index}
+                  key={msg.id}
                   className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                 >
                   <div className={`flex items-end space-x-2 max-w-lg ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -197,15 +342,39 @@ const ConversationPage = () => {
                       >
                         <p className="break-words">{msg.content}</p>
                       </div>
-                      <p className={`text-xs text-gray-500 mt-1 px-2 ${isOwnMessage ? 'text-right' : 'text-left'}`}>
-                        {formatTime(msg.createdAt)}
-                      </p>
+                      <div className={`text-xs text-gray-500 mt-1 px-2 flex items-center gap-1 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                        <span>{formatTime(msg.createdAt)}</span>
+                        {isOwnMessage && msg.read && (
+                          <span className="text-blue-600">✓✓</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
               );
             })
           )}
+          
+          {/* Typing Indicator */}
+          {typingUsers.has(otherUserId) && (
+            <div className="flex justify-start">
+              <div className="flex items-end space-x-2">
+                <img
+                  src={otherUser?.photoUrl}
+                  alt={otherUser?.name}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                />
+                <div className="bg-white text-gray-900 border border-gray-200 rounded-2xl rounded-bl-none px-4 py-2">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+                    <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>
@@ -217,7 +386,7 @@ const ConversationPage = () => {
             <div className="flex-1">
               <textarea
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={handleMessageChange}
                 placeholder="Type your message..."
                 rows="1"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"

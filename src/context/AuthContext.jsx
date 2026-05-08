@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getCurrentUser, login as loginService, register as registerService, logout as logoutService } from '../services/userService';
+import socketService from '../services/socketService';
 
 const AuthContext = createContext();
 
@@ -20,6 +21,11 @@ export const AuthProvider = ({ children }) => {
     const currentUser = getCurrentUser();
     if (currentUser) {
       setUser(currentUser);
+      // Connect to WebSocket
+      const token = localStorage.getItem('token');
+      if (token) {
+        socketService.connect(token);
+      }
     }
     setLoading(false);
   }, []);
@@ -28,6 +34,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const userData = await loginService(credentials);
       setUser(userData);
+      // Connect to WebSocket
+      const token = localStorage.getItem('token');
+      if (token) {
+        socketService.connect(token);
+      }
       return userData;
     } catch (error) {
       throw error;
@@ -38,6 +49,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const newUser = await registerService(userData);
       setUser(newUser);
+      // Connect to WebSocket
+      const token = localStorage.getItem('token');
+      if (token) {
+        socketService.connect(token);
+      }
       return newUser;
     } catch (error) {
       throw error;
@@ -47,6 +63,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     logoutService();
     setUser(null);
+    // Disconnect from WebSocket
+    socketService.disconnect();
   };
 
   const updateUser = (updatedUserData) => {
@@ -69,3 +87,4 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+

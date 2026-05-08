@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserConversations } from '../services/messageService';
+import { getUserConversations, onMessageReceived } from '../services/messageService';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -19,6 +19,19 @@ const MessagesPage = () => {
     loadConversations();
   }, [user]);
 
+  // Listen for new messages to update conversations list
+  useEffect(() => {
+    const handleNewMessage = () => {
+      loadConversations();
+    };
+
+    onMessageReceived(handleNewMessage);
+
+    return () => {
+      // Cleanup listener if needed
+    };
+  }, []);
+
   const loadConversations = async () => {
     try {
       setLoading(true);
@@ -36,8 +49,8 @@ const MessagesPage = () => {
   };
 
   const getLastMessage = (conv) => {
-    if (!conv.messages || conv.messages.length === 0) return 'No messages yet';
-    const lastMsg = conv.messages[conv.messages.length - 1];
+    if (!conv.lastMessage) return 'No messages yet';
+    const lastMsg = conv.lastMessage;
     const preview = lastMsg.content.length > 50 
       ? lastMsg.content.substring(0, 50) + '...' 
       : lastMsg.content;
@@ -45,13 +58,8 @@ const MessagesPage = () => {
     return `${isOwn ? 'You: ' : ''}${preview}`;
   };
 
-  const getUnreadCount = (conv) => {
-    if (!conv.messages) return 0;
-    return conv.messages.filter(msg => 
-      msg.sender._id !== user?._id && !msg.read
-    ).length;
-  };
-
+  // Count unread messages - requires fetching full conversation data
+  // For now, we'll show a simplified version
   const formatTime = (date) => {
     const now = new Date();
     const messageDate = new Date(date);
@@ -106,7 +114,6 @@ const MessagesPage = () => {
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
             {conversations.map((conv) => {
               const otherUser = getOtherUser(conv);
-              const unreadCount = getUnreadCount(conv);
               
               return (
                 <button
@@ -121,11 +128,6 @@ const MessagesPage = () => {
                       alt={otherUser?.name}
                       className="w-14 h-14 rounded-full object-cover"
                     />
-                    {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                        {unreadCount}
-                      </span>
-                    )}
                   </div>
 
                   {/* Conversation Info */}
@@ -141,7 +143,7 @@ const MessagesPage = () => {
                     <p className="text-sm text-blue-600 truncate mb-1">
                       {conv.listing?.title}
                     </p>
-                    <p className={`text-sm truncate ${unreadCount > 0 ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
+                    <p className="text-sm truncate text-gray-600">
                       {getLastMessage(conv)}
                     </p>
                   </div>

@@ -2,7 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const http = require('http');
+const socketIO = require('socket.io');
 const connectDB = require('./config/db');
+const socketAuth = require('./middleware/socketMiddleware');
+const setupSocketHandlers = require('./websocket/socketHandlers');
 
 // Load environment variables from parent directory
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -11,6 +15,22 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+
+// Socket.io setup
+const io = socketIO(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Socket.io middleware for authentication
+io.use(socketAuth);
+
+// Setup socket event handlers
+setupSocketHandlers(io);
 
 // Middleware
 app.use(cors({
@@ -52,7 +72,9 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🔌 WebSocket ready for connections`);
 });
+

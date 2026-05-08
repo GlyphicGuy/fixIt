@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const Conversation = require('../models/Conversation');
 const Listing = require('../models/Listing');
 
 // @desc    Get or create conversation for a listing between two users
@@ -26,71 +27,34 @@ const getConversation = async (req, res) => {
     }
 
     // Find or create conversation
-    let conversation = await Message.findOne({
+    let conversation = await Conversation.findOne({
       listing: listingId,
       participants: { $all: [currentUserId, otherUserId] }
     })
     .populate('participants', 'name email photoUrl')
-    .populate('messages.sender', 'name photoUrl');
+    .populate('lastMessage');
 
     if (!conversation) {
       // Create new conversation
-      conversation = await Message.create({
+      conversation = await Conversation.create({
         listing: listingId,
-        participants: [currentUserId, otherUserId],
-        messages: []
+        participants: [currentUserId, otherUserId]
       });
 
-      conversation = await Message.findById(conversation._id)
-        .populate('participants', 'name email photoUrl')
-        .populate('messages.sender', 'name photoUrl');
+      conversation = await Conversation.findById(conversation._id)
+        .populate('participants', 'name email photoUrl');
     }
 
-    res.json(conversation);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    // Fetch message history (last 50 messages)
+    const messages = await Message.find({ conversation: conversation._id })
+      .populate('sender', 'name photoUrl')
+      .sort({ createdAt: -1 })
+      .limit(50);
 
-// @desc    Send a message in a conversation
-// @route   POST /api/messages/:conversationId
-// @access  Private
-const sendMessage = async (req, res) => {
-  try {
-    const { conversationId } = req.params;
-    const { content } = req.body;
-    const senderId = req.user._id;
-
-    if (!content || !content.trim()) {
-      return res.status(400).json({ message: 'Message content is required' });
-    }
-
-    const conversation = await Message.findById(conversationId);
-    
-    if (!conversation) {
-      return res.status(404).json({ message: 'Conversation not found' });
-    }
-
-    // Verify user is a participant
-    if (!conversation.participants.includes(senderId)) {
-      return res.status(403).json({ message: 'Not authorized to send messages in this conversation' });
-    }
-
-    // Add message
-    conversation.messages.push({
-      sender: senderId,
-      content: content.trim()
+    res.json({
+      conversation,
+      messages: messages.reverse()
     });
-
-    conversation.lastMessageAt = Date.now();
-    await conversation.save();
-
-    // Populate and return updated conversation
-    const updatedConversation = await Message.findById(conversationId)
-      .populate('participants', 'name email photoUrl')
-      .populate('messages.sender', 'name photoUrl');
-
-    res.json(updatedConversation);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -103,14 +67,17 @@ const getUserConversations = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const conversations = await Message.find({
+    const conversations = await Conversation.find({
       participants: userId
     })
     .populate('participants', 'name email photoUrl')
     .populate('listing', 'title photoUrl status')
     .populate({
-      path: 'messages.sender',
-      select: 'name photoUrl'
+      path: 'lastMessage',
+      populate: {
+        path: 'sender',
+        select: 'name photoUrl'
+      }
     })
     .sort({ lastMessageAt: -1 });
 
@@ -128,7 +95,7 @@ const markAsRead = async (req, res) => {
     const { conversationId } = req.params;
     const userId = req.user._id;
 
-    const conversation = await Message.findById(conversationId);
+    const conversation = await Conversation.findById(conversationId);
     
     if (!conversation) {
       return res.status(404).json({ message: 'Conversation not found' });
@@ -140,13 +107,10 @@ const markAsRead = async (req, res) => {
     }
 
     // Mark all messages from other participants as read
-    conversation.messages.forEach(msg => {
-      if (msg.sender.toString() !== userId.toString()) {
-        msg.read = true;
-      }
-    });
-
-    await conversation.save();
+    await Message.updateMany(
+      { conversation: conversationId, sender: { $ne: userId } },
+      { read: true, readAt: new Date() }
+    );
 
     res.json({ message: 'Messages marked as read' });
   } catch (error) {
@@ -156,7 +120,6 @@ const markAsRead = async (req, res) => {
 
 module.exports = {
   getConversation,
-  sendMessage,
   getUserConversations,
   markAsRead
 };
