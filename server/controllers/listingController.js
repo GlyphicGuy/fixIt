@@ -28,8 +28,7 @@ const getListings = async (req, res) => {
     }
 
     const listings = await Listing.find(query)
-      .populate('postedBy', 'name email photoUrl')
-      .populate('interestedFixers.fixer', 'name email photoUrl rating fixesCompleted')
+      .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
     res.json(listings);
@@ -190,7 +189,7 @@ const addInterestedFixer = async (req, res) => {
 const getUserListings = async (req, res) => {
   try {
     const listings = await Listing.find({ postedBy: req.params.userId })
-      .populate('postedBy', 'name email photoUrl')
+      .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
     res.json(listings);
@@ -207,8 +206,7 @@ const getInterestedListings = async (req, res) => {
     const listings = await Listing.find({
       'interestedFixers.fixer': req.params.userId
     })
-      .populate('postedBy', 'name email photoUrl')
-      .populate('interestedFixers.fixer', 'name email photoUrl')
+      .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
     // Map listings to include the user's interest status

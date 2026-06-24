@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const dotenv = require('dotenv');
 const path = require('path');
 const http = require('http');
@@ -51,6 +52,7 @@ io.use(socketAuth);
 setupSocketHandlers(io);
 
 // Middleware
+app.use(compression());
 app.use(cors(corsOptions));
 // Increase payload size limit for image uploads (10MB)
 app.use(express.json({ limit: '10mb' }));
