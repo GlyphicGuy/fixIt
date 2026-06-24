@@ -13,12 +13,14 @@ const {
   acceptFixer,
   markListingFixed,
   flagListing,
-  getPublicStats
+  getPublicStats,
+  getListingPhoto
 } = require('../controllers/listingController');
 
 // Public routes
 router.get('/', getListings);
 router.get('/stats', getPublicStats);
+router.get('/:id/photo', getListingPhoto);
 router.get('/:id', getListingById);
 router.get('/user/:userId', getUserListings);
 router.get('/interested/:userId', getInterestedListings);

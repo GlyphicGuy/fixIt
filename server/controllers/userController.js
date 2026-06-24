@@ -160,7 +160,7 @@ const getFixers = async (req, res) => {
   try {
     const fixers = await User.find({
       skills: { $exists: true, $not: { $size: 0 } }
-    }).select('-password');
+    }).select('-password -photoUrl');
 
     res.json(fixers);
   } catch (error) {
@@ -201,11 +201,47 @@ const reportUser = async (req, res) => {
   }
 };
 
+// @desc    Get user photo
+// @route   GET /api/users/:id/photo
+// @access  Public
+const getUserPhoto = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('photoUrl name');
+    
+    const getFallback = (name) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${name || 'default'}`;
+    
+    if (!user || !user.photoUrl) {
+      return res.redirect(getFallback(user?.name));
+    }
+
+    res.set('Cache-Control', 'public, max-age=86400');
+
+    if (user.photoUrl.startsWith('http')) {
+      return res.redirect(user.photoUrl);
+    }
+
+    if (user.photoUrl.startsWith('data:image/')) {
+      const matches = user.photoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).send('Invalid base64 string');
+      }
+      const buffer = Buffer.from(matches[2], 'base64');
+      res.set('Content-Type', matches[1]);
+      return res.send(buffer);
+    }
+
+    return res.redirect(getFallback(user.name));
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
   updateUserProfile,
   getFixers,
-  reportUser
+  reportUser,
+  getUserPhoto
 };

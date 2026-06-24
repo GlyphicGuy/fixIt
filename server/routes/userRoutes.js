@@ -7,13 +7,15 @@ const {
   getUserProfile,
   updateUserProfile,
   getFixers,
-  reportUser
+  reportUser,
+  getUserPhoto
 } = require('../controllers/userController');
 
 // Public routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/profile/:id', getUserProfile);
+router.get('/:id/photo', getUserPhoto);
 router.get('/fixers', getFixers);
 
 // Protected routes

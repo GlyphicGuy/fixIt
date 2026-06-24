@@ -28,6 +28,7 @@ const getListings = async (req, res) => {
     }
 
     const listings = await Listing.find(query)
+      .select('-photoUrl')
       .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
@@ -189,6 +190,7 @@ const addInterestedFixer = async (req, res) => {
 const getUserListings = async (req, res) => {
   try {
     const listings = await Listing.find({ postedBy: req.params.userId })
+      .select('-photoUrl')
       .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
@@ -206,6 +208,7 @@ const getInterestedListings = async (req, res) => {
     const listings = await Listing.find({
       'interestedFixers.fixer': req.params.userId
     })
+      .select('-photoUrl')
       .populate('postedBy', 'name')
       .sort({ createdAt: -1 });
 
@@ -400,6 +403,39 @@ const getPublicStats = async (req, res) => {
   }
 };
 
+// @desc    Get listing photo
+// @route   GET /api/listings/:id/photo
+// @access  Public
+const getListingPhoto = async (req, res) => {
+  try {
+    const listing = await Listing.findById(req.params.id).select('photoUrl');
+    if (!listing || !listing.photoUrl) {
+      return res.status(404).send('No photo');
+    }
+    
+    // Cache image for 1 day
+    res.set('Cache-Control', 'public, max-age=86400');
+
+    if (listing.photoUrl.startsWith('http')) {
+      return res.redirect(listing.photoUrl);
+    }
+    
+    if (listing.photoUrl.startsWith('data:image/')) {
+      const matches = listing.photoUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        return res.status(400).send('Invalid base64 string');
+      }
+      const buffer = Buffer.from(matches[2], 'base64');
+      res.set('Content-Type', matches[1]);
+      return res.send(buffer);
+    }
+    
+    res.status(404).send('No photo');
+  } catch (error) {
+    res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   getListings,
   getListingById,
@@ -412,5 +448,6 @@ module.exports = {
   acceptFixer,
   markListingFixed,
   flagListing,
-  getPublicStats
+  getPublicStats,
+  getListingPhoto
 };

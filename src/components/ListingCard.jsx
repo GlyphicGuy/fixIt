@@ -22,7 +22,7 @@ function ListingCard({ listing }) {
       {/* Image */}
       <div className="relative">
         <img 
-          src={listing.photoUrl} 
+          src={listing.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/listings/${listing._id || listing.id}/photo`} 
           alt={listing.title}
           className="w-full h-48 object-cover"
         />
