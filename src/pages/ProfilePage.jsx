@@ -196,42 +196,57 @@ function ProfilePage() {
 
     try {
       setUploadingPhoto(true);
-      console.log('Starting file conversion to base64...');
 
-      // Convert to base64
       const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64String = reader.result;
-        const base64Size = (base64String.length / (1024 * 1024)).toFixed(2);
-        console.log(`Base64 conversion complete. Size: ${base64Size} MB`);
-        setPreviewPhoto(base64String);
-
-        try {
-          console.log('Uploading to server...');
-          // Upload to server
-          await updateUserProfile({ photoUrl: base64String });
-          console.log('Upload successful!');
-
-          setUser(prev => ({
-            ...prev,
-            photoUrl: base64String
-          }));
-
-          // Update auth context if viewing own profile
-          if (isOwnProfile) {
-            updateUser({ photoUrl: base64String });
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = async () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_SIZE = 500;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
           }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const base64String = canvas.toDataURL('image/jpeg', 0.8);
+          setPreviewPhoto(base64String);
 
-          success('Profile picture updated successfully!');
-          setPreviewPhoto(null);
-        } catch (err) {
-          console.error('Error uploading photo:', err);
-          console.error('Error details:', err.response?.data);
-          showError(err.response?.data?.message || 'Failed to upload photo. Please try again.');
-          setPreviewPhoto(null);
-        } finally {
-          setUploadingPhoto(false);
-        }
+          try {
+            await updateUserProfile({ photoUrl: base64String });
+
+            setUser(prev => ({
+              ...prev,
+              photoUrl: base64String
+            }));
+
+            if (isOwnProfile) {
+              updateUser({ photoUrl: base64String });
+            }
+
+            success('Profile picture updated successfully!');
+            setPreviewPhoto(null);
+          } catch (err) {
+            showError(err.response?.data?.message || 'Failed to upload photo.');
+          } finally {
+            setUploadingPhoto(false);
+          }
+        };
+        img.src = reader.result;
       };
 
       reader.onerror = (error) => {
