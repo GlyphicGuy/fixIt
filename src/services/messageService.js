@@ -1,10 +1,34 @@
 import api from './api';
 import socketService from './socketService';
 
-// Get or create a conversation for a listing
-export const getConversation = async (listingId, otherUserId) => {
-  const response = await api.get(`/messages/conversation/${listingId}/${otherUserId}`);
-  return response.data;
+// Get or create a conversation for a listing via WebSocket
+export const getConversation = (listingId, otherUserId) => {
+  return new Promise((resolve, reject) => {
+    if (!socketService.socket) {
+      return reject({ response: { data: { message: 'WebSocket not initialized' } } });
+    }
+
+    const handleLoaded = (data) => {
+      socketService.socket.off('conversation:loaded', handleLoaded);
+      socketService.socket.off('error', handleError);
+      resolve(data);
+    };
+
+    const handleError = (error) => {
+      socketService.socket.off('conversation:loaded', handleLoaded);
+      socketService.socket.off('error', handleError);
+      reject({ response: { data: { message: error.message || 'Socket error' } } });
+    };
+
+    socketService.socket.on('conversation:loaded', handleLoaded);
+    socketService.socket.on('error', handleError);
+
+    socketService.socket.emit('conversation:join', {
+      conversationId: null,
+      listingId,
+      otherUserId
+    });
+  });
 };
 
 // Send a message via WebSocket
@@ -12,10 +36,30 @@ export const sendMessage = (conversationId, content) => {
   socketService.sendMessage(conversationId, content);
 };
 
-// Get all conversations for the logged-in user
-export const getUserConversations = async () => {
-  const response = await api.get('/messages/conversations');
-  return response.data;
+// Get all conversations for the logged-in user via WebSocket
+export const getUserConversations = () => {
+  return new Promise((resolve, reject) => {
+    if (!socketService.socket) {
+      return reject({ response: { data: { message: 'WebSocket not initialized' } } });
+    }
+
+    const handleLoaded = (data) => {
+      socketService.socket.off('conversations:loaded', handleLoaded);
+      socketService.socket.off('error', handleError);
+      resolve(data);
+    };
+
+    const handleError = (error) => {
+      socketService.socket.off('conversations:loaded', handleLoaded);
+      socketService.socket.off('error', handleError);
+      reject({ response: { data: { message: error.message || 'Socket error' } } });
+    };
+
+    socketService.socket.on('conversations:loaded', handleLoaded);
+    socketService.socket.on('error', handleError);
+
+    socketService.socket.emit('conversations:get');
+  });
 };
 
 // Mark messages as read via WebSocket

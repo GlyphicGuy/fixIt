@@ -64,6 +64,11 @@ class SocketService {
     });
   }
 
+  // Get all conversations
+  getConversations() {
+    this.socket.emit('conversations:get');
+  }
+
   // Leave a conversation
   leaveConversation(conversationId) {
     this.socket.emit('conversation:leave', { conversationId });

@@ -221,6 +221,33 @@ module.exports = (io) => {
     });
 
     /**
+     * GET USER CONVERSATIONS
+     * Client emits: {}
+     */
+    socket.on('conversations:get', async () => {
+      try {
+        const conversations = await Conversation.find({
+          participants: userId
+        })
+        .populate('participants', 'name email')
+        .populate('listing', 'title status')
+        .populate({
+          path: 'lastMessage',
+          populate: {
+            path: 'sender',
+            select: 'name'
+          }
+        })
+        .sort({ lastMessageAt: -1 });
+
+        socket.emit('conversations:loaded', conversations);
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+        socket.emit('error', { message: error.message });
+      }
+    });
+
+    /**
      * DISCONNECT
      */
     socket.on('disconnect', () => {
