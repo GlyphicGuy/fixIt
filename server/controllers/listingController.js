@@ -370,6 +370,36 @@ const flagListing = async (req, res) => {
   }
 };
 
+// @desc    Get public stats for home page
+// @route   GET /api/listings/stats
+// @access  Public
+const getPublicStats = async (req, res) => {
+  try {
+    const User = require('../models/User');
+
+    const itemsFixed = await Listing.countDocuments({ status: 'fixed' });
+    const activeFixers = await User.countDocuments({
+      skills: { $exists: true, $not: { $size: 0 } }
+    });
+
+    const usersWithRatings = await User.find({ rating: { $gt: 0 } }).select('rating');
+    const avgRating = usersWithRatings.length > 0
+      ? (usersWithRatings.reduce((sum, user) => sum + user.rating, 0) / usersWithRatings.length)
+      : 0;
+
+    const wasteReduced = itemsFixed * 8;
+
+    res.json({
+      itemsFixed,
+      activeFixers,
+      avgRating: avgRating.toFixed(1),
+      wasteReduced
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getListings,
   getListingById,
@@ -381,5 +411,6 @@ module.exports = {
   getInterestedListings,
   acceptFixer,
   markListingFixed,
-  flagListing
+  flagListing,
+  getPublicStats
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getListings } from '../services/listingService';
-import { getFixers } from '../services/userService';
+import { getPublicStats } from '../services/listingService';
 
 function StatsSection() {
   const [stats, setStats] = useState({
@@ -17,32 +16,8 @@ function StatsSection() {
 
   const fetchStats = async () => {
     try {
-      const [allListings, allFixers] = await Promise.all([
-        getListings(),
-        getFixers()
-      ]);
-
-      // Count fixed items
-      const itemsFixed = allListings.filter(listing => listing.status === 'fixed').length;
-
-      // Count active fixers (users with skills)
-      const activeFixers = allFixers.filter(fixer => fixer.skills && fixer.skills.length > 0).length;
-
-      // Calculate average rating
-      const fixersWithRatings = allFixers.filter(fixer => fixer.rating > 0);
-      const avgRating = fixersWithRatings.length > 0
-        ? (fixersWithRatings.reduce((sum, fixer) => sum + fixer.rating, 0) / fixersWithRatings.length)
-        : 0;
-
-      // Estimate waste reduced (assuming each fix saves ~8kg on average)
-      const wasteReduced = itemsFixed * 8; // in kg
-
-      setStats({
-        itemsFixed,
-        activeFixers,
-        avgRating: avgRating.toFixed(1),
-        wasteReduced
-      });
+      const data = await getPublicStats();
+      setStats(data);
     } catch (err) {
       console.error('Error fetching stats:', err);
     } finally {

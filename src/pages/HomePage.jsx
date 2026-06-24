@@ -14,45 +14,52 @@ function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [listings, setListings] = useState([]);
   const [fixers, setFixers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingListings, setLoadingListings] = useState(true);
+  const [loadingFixers, setLoadingFixers] = useState(true);
   const [error, setError] = useState('');
 
+  // Fetch fixers once
   useEffect(() => {
-    fetchData();
+    const fetchInitialFixers = async () => {
+      try {
+        const fixersData = await getFixers();
+        setFixers(fixersData);
+      } catch (err) {
+        console.error('Error fetching fixers:', err);
+        setFixers(mockFixers);
+      } finally {
+        setLoadingFixers(false);
+      }
+    };
+    fetchInitialFixers();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [listingsData, fixersData] = await Promise.all([
-        getListings({ status: 'open' }),
-        getFixers()
-      ]);
-      setListings(listingsData);
-      setFixers(fixersData);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError('Failed to load data');
-      // Fallback to mock data if API fails
-      setListings([]);
-      setFixers(mockFixers);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch listings when filters change
+  useEffect(() => {
+    const fetchFilteredListings = async () => {
+      try {
+        setLoadingListings(true);
+        const data = await getListings({ 
+          status: 'open', 
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+          search: searchTerm || undefined 
+        });
+        setListings(data);
+        setError('');
+      } catch (err) {
+        console.error('Error fetching listings:', err);
+        setError('Failed to load data');
+        setListings([]);
+      } finally {
+        setLoadingListings(false);
+      }
+    };
+    fetchFilteredListings();
+  }, [selectedCategory, searchTerm]);
 
   const handleSearch = (term) => {
     setSearchTerm(term);
   };
-
-  const filteredListings = listings
-    .filter(listing => selectedCategory === 'All' || listing.category === selectedCategory)
-    .filter(listing => 
-      searchTerm === '' || 
-      listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      listing.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
   const scrollToFixers = () => {
     document.getElementById('fixers-section').scrollIntoView({ behavior: 'smooth' });
@@ -121,7 +128,7 @@ function HomePage() {
             {selectedCategory === 'All' ? 'All Listings' : `${selectedCategory} Listings`}
           </h3>
           
-          {loading ? (
+          {loadingListings ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading listings...</p>
@@ -130,13 +137,13 @@ function HomePage() {
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               {error}
             </div>
-          ) : filteredListings.length === 0 ? (
+          ) : listings.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow">
               <p className="text-gray-600">No listings found</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredListings.map((listing) => (
+              {listings.map((listing) => (
                 <ListingCard key={listing._id} listing={listing} />
               ))}
             </div>
@@ -146,7 +153,7 @@ function HomePage() {
         {/* Featured Fixers */}
         <div id="fixers-section">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Featured Fixers</h2>
-          {loading ? (
+          {loadingFixers ? (
             <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
               <p className="mt-4 text-gray-600">Loading fixers...</p>

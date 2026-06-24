@@ -65,3 +65,9 @@ export const flagListing = async (id, reason) => {
   const { data } = await api.put(`/listings/${id}/flag`, { reason });
   return data;
 };
+
+// Get public stats
+export const getPublicStats = async () => {
+  const { data } = await api.get('/listings/stats');
+  return data;
+};
