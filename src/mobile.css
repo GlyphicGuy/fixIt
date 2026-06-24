@@ -1,0 +1,489 @@
+/* ===================================================================
+   MOBILE APP STYLES — Native-feeling mobile experience for Capacitor
+   =================================================================== */
+
+/* --- Root & Body: App-like behavior --- */
+html, body {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Allow text selection in inputs/textareas */
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* --- Mobile App Shell --- */
+.mobile-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  background: #f0f2f5;
+  position: relative;
+}
+
+/* --- Mobile Top Bar --- */
+.mobile-top-bar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  padding-top: env(safe-area-inset-top, 0px);
+  box-shadow: 0 2px 12px rgba(79, 70, 229, 0.3);
+  flex-shrink: 0;
+}
+
+.top-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 16px;
+}
+
+.top-bar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.3px;
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-bar-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.top-bar-back:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.92);
+}
+
+.top-bar-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.top-bar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.avatar-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  object-fit: cover;
+  background: #e5e7eb;
+}
+
+/* --- Mobile Content Area --- */
+.mobile-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.mobile-content.with-tab-bar {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-content.without-tab-bar {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar for cleaner look */
+.mobile-content::-webkit-scrollbar {
+  display: none;
+}
+.mobile-content {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* --- Bottom Tab Bar --- */
+.mobile-bottom-tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.tab-bar-inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  height: 64px;
+  padding: 0 8px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 8px 4px 6px;
+  position: relative;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-item:active {
+  transform: scale(0.88);
+}
+
+.tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 2px;
+  color: #9ca3af;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tab-icon-active {
+  color: #4f46e5;
+  transform: translateY(-2px);
+}
+
+.tab-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #9ca3af;
+  letter-spacing: 0.2px;
+  transition: color 0.25s ease;
+  line-height: 1;
+}
+
+.tab-label-active {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.tab-indicator {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed);
+  border-radius: 0 0 3px 3px;
+  animation: indicatorPop 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes indicatorPop {
+  0% {
+    width: 0px;
+    opacity: 0;
+  }
+  100% {
+    width: 20px;
+    opacity: 1;
+  }
+}
+
+/* --- FAB (center post button) --- */
+.tab-fab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 4px 6px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-fab:active .tab-fab-circle {
+  transform: translateY(-20px) scale(0.9);
+}
+
+.tab-fab-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4), 0 1px 3px rgba(0,0,0,0.1);
+  transform: translateY(-18px);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Mobile-specific overrides for existing pages --- */
+
+/* Remove the desktop Navbar and Footer when in mobile mode */
+.mobile-app .bg-gradient-to-r.from-blue-600.to-purple-600.text-white.shadow-lg {
+  display: none !important;
+}
+.mobile-app footer.bg-gray-800 {
+  display: none !important;
+}
+
+/* Override hero sections to be more compact on mobile */
+.mobile-app .bg-gradient-to-r.from-blue-600.to-purple-600.text-white.py-16 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+.mobile-app .text-5xl {
+  font-size: 1.75rem;
+  line-height: 2rem;
+}
+
+/* Make containers full-width on mobile */
+.mobile-app .container {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Listings grid: single column on mobile */
+.mobile-app .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-3 {
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Compact section spacing */
+.mobile-app .py-8 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+.mobile-app .mb-12 {
+  margin-bottom: 1.5rem;
+}
+.mobile-app .my-16 {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.mobile-app .mt-16 {
+  margin-top: 0;
+}
+
+/* Cards: softer shadows, rounded */
+.mobile-app .shadow {
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
+}
+.mobile-app .shadow-sm {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+.mobile-app .shadow-lg {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Rounded corners on cards */
+.mobile-app .rounded-lg {
+  border-radius: 16px;
+}
+
+/* Full-width buttons */
+.mobile-app .flex.justify-center.space-x-4 {
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px;
+}
+.mobile-app .flex.justify-center.space-x-4 > * {
+  text-align: center;
+}
+
+/* Category filter pills: scrollable horizontally */
+.mobile-app .flex.flex-wrap.gap-2 {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  gap: 8px;
+}
+.mobile-app .flex.flex-wrap.gap-2::-webkit-scrollbar {
+  display: none;
+}
+.mobile-app .flex.flex-wrap.gap-2 button {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+}
+
+/* Desktop navigation links: hide on mobile */
+.mobile-app .hidden.md\:flex {
+  display: none !important;
+}
+
+/* Page min-height override for mobile */
+.mobile-app .min-h-screen {
+  min-height: auto;
+}
+
+/* Messages page: remove top padding that the web version uses */
+.mobile-app .min-h-screen.bg-gray-50.py-8 {
+  padding-top: 0.5rem;
+}
+
+/* Profile page adjustments */
+.mobile-app .max-w-4xl {
+  max-width: 100%;
+}
+.mobile-app .max-w-6xl {
+  max-width: 100%;
+}
+
+/* Fix form inputs for native feel */
+.mobile-app input[type="text"],
+.mobile-app input[type="email"],
+.mobile-app input[type="password"],
+.mobile-app input[type="number"],
+.mobile-app input[type="tel"],
+.mobile-app textarea,
+.mobile-app select {
+  font-size: 16px !important; /* Prevents iOS zoom on focus */
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+/* Transition animations for page content */
+.mobile-content > div {
+  animation: pageSlideIn 0.25s ease-out;
+}
+
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Pull-to-refresh style indicator (visual only) --- */
+.mobile-content::before {
+  content: '';
+  display: block;
+  height: 0;
+  transition: height 0.2s ease;
+}
+
+/* --- Toast positioning: move above tab bar --- */
+.mobile-app .fixed.top-4.right-4 {
+  top: auto !important;
+  bottom: 100px !important;
+  right: 16px !important;
+  left: 16px !important;
+}
+
+/* --- Conversation page: full-screen chat --- */
+.mobile-app .min-h-screen.bg-gray-50.flex.flex-col {
+  min-height: auto;
+  height: 100%;
+}
+
+/* --- Admin Dashboard: scrollable tables --- */
+.mobile-app table {
+  display: block;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Status bar color matching (for Android) --- */
+@media screen and (max-width: 768px) {
+  :root {
+    --status-bar-height: env(safe-area-inset-top, 24px);
+  }
+}
+
+/* --- Haptic-like press feedback --- */
+.mobile-app button:not(.tab-item):not(.tab-fab):active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* --- Login/Register pages: centered, full-height --- */
+.mobile-app .min-h-screen.flex.items-center.justify-center {
+  min-height: 100%;
+  padding: 24px 16px;
+}
+
+/* --- Smooth font rendering --- */
+.mobile-app {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* --- Image handling --- */
+.mobile-app img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* --- Loading spinner centered --- */
+.mobile-app .flex.items-center.justify-center {
+  min-height: 40vh;
+}
+
+/* --- Search bar fullwidth --- */
+.mobile-app .relative.max-w-2xl.mx-auto {
+  max-width: 100%;
+}
