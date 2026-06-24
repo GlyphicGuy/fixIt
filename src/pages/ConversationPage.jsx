@@ -27,6 +27,7 @@ const ConversationPage = () => {
   const typingTimeoutRef = useRef(null);
 
   const otherUser = conversation?.participants?.find(p => p._id !== user?._id);
+  const getUserPhoto = (u) => u?.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${u?._id || u?.id}/photo`;
 
   useEffect(() => {
     if (!user || !otherUserId) {
@@ -266,9 +267,9 @@ const ConversationPage = () => {
             <div className="flex-1">
               <div className="flex items-center space-x-3">
                 <div className="relative">
-                  {otherUser?.photoUrl && (
+                  {otherUser && (
                     <img
-                      src={otherUser.photoUrl}
+                      src={getUserPhoto(otherUser)}
                       alt={otherUser.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
@@ -328,7 +329,7 @@ const ConversationPage = () => {
                 >
                   <div className={`flex items-end space-x-2 max-w-lg ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''}`}>
                     <img
-                      src={msg.sender.photoUrl}
+                      src={getUserPhoto(msg.sender)}
                       alt={msg.sender.name}
                       className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                     />
@@ -360,7 +361,7 @@ const ConversationPage = () => {
             <div className="flex justify-start">
               <div className="flex items-end space-x-2">
                 <img
-                  src={otherUser?.photoUrl}
+                  src={getUserPhoto(otherUser)}
                   alt={otherUser?.name}
                   className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />

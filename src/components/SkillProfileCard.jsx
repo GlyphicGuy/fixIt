@@ -6,8 +6,8 @@ function SkillProfileCard({ fixer }) {
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
       {/* Profile Header */}
       <div className="flex items-center space-x-4 mb-4">
-        <img 
-          src={fixer.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${fixer._id || fixer.id}/photo`}
+        <img
+          src={fixer.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${fixer.name}`}
           alt={fixer.name}
           className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 bg-gray-100"
         />
@@ -28,7 +28,7 @@ function SkillProfileCard({ fixer }) {
         <h4 className="text-sm font-semibold text-gray-700 mb-2">Skills:</h4>
         <div className="flex flex-wrap gap-2">
           {fixer.skills.map((skill, index) => (
-            <span 
+            <span
               key={index}
               className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium"
             >
@@ -44,7 +44,7 @@ function SkillProfileCard({ fixer }) {
         <div className="flex flex-wrap gap-2">
           {fixer.badges && fixer.badges.length > 0 ? (
             fixer.badges.map((badge, index) => (
-              <span 
+              <span
                 key={index}
                 className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-medium"
               >

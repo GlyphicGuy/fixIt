@@ -31,7 +31,7 @@ const getConversation = async (req, res) => {
       listing: listingId,
       participants: { $all: [currentUserId, otherUserId] }
     })
-    .populate('participants', 'name email photoUrl')
+    .populate('participants', 'name email')
     .populate('lastMessage');
 
     if (!conversation) {
@@ -42,12 +42,12 @@ const getConversation = async (req, res) => {
       });
 
       conversation = await Conversation.findById(conversation._id)
-        .populate('participants', 'name email photoUrl');
+        .populate('participants', 'name email');
     }
 
     // Fetch message history (last 50 messages)
     const messages = await Message.find({ conversation: conversation._id })
-      .populate('sender', 'name photoUrl')
+      .populate('sender', 'name')
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -70,13 +70,13 @@ const getUserConversations = async (req, res) => {
     const conversations = await Conversation.find({
       participants: userId
     })
-    .populate('participants', 'name email photoUrl')
-    .populate('listing', 'title photoUrl status')
+    .populate('participants', 'name email')
+    .populate('listing', 'title status')
     .populate({
       path: 'lastMessage',
       populate: {
         path: 'sender',
-        select: 'name photoUrl'
+        select: 'name'
       }
     })
     .sort({ lastMessageAt: -1 });

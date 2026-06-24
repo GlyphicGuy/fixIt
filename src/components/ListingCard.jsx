@@ -15,14 +15,14 @@ function ListingCard({ listing }) {
   };
 
   return (
-    <Link 
+    <Link
       to={`/listing/${listing._id || listing.id}`}
       className="block bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     >
       {/* Image */}
       <div className="relative">
-        <img 
-          src={listing.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/listings/${listing._id || listing.id}/photo`} 
+        <img
+          src={listing.photoUrl}
           alt={listing.title}
           className="w-full h-48 object-cover"
         />

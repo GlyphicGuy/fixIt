@@ -39,13 +39,6 @@ function NewListingPage() {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image size should be less than 5MB');
-        return;
-      }
-
-      // Check file type
       if (!file.type.startsWith('image/')) {
         setError('Please select an image file');
         return;
@@ -53,10 +46,36 @@ function NewListingPage() {
 
       setPhotoFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
-        setPhotoPreview(reader.result);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          setPhotoPreview(compressedBase64);
+        };
+        img.src = reader.result;
       };
       reader.readAsDataURL(file);
       setError('');

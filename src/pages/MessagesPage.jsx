@@ -11,6 +11,9 @@ const MessagesPage = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const getUserPhoto = (u) => u?.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${u?._id || u?.id}/photo`;
+  const getListingPhoto = (l) => l?.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/listings/${l?._id || l?.id}/photo`;
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -124,7 +127,7 @@ const MessagesPage = () => {
                   {/* User Photo */}
                   <div className="relative flex-shrink-0">
                     <img
-                      src={otherUser?.photoUrl}
+                      src={getUserPhoto(otherUser)}
                       alt={otherUser?.name}
                       className="w-14 h-14 rounded-full object-cover"
                     />
@@ -151,7 +154,7 @@ const MessagesPage = () => {
                   {/* Listing Image */}
                   <div className="flex-shrink-0">
                     <img
-                      src={conv.listing?.photoUrl}
+                      src={getListingPhoto(conv.listing)}
                       alt={conv.listing?.title}
                       className="w-16 h-16 rounded-lg object-cover"
                     />
