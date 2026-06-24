@@ -221,7 +221,7 @@ function ListingDetailPage() {
             <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
               {/* Image */}
               <img
-                src={listing.photoUrl}
+                src={listing.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/listings/${listing._id || listing.id}/photo`}
                 alt={listing.title}
                 className="w-full h-96 object-cover"
               />
@@ -397,7 +397,7 @@ function ListingDetailPage() {
                     >
                       <div className="flex items-start space-x-3 mb-3">
                         <img
-                          src={item.fixer?.photoUrl}
+                          src={item.fixer?.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${item.fixer?._id || item.fixer?.id}/photo`}
                           alt={item.fixer?.name}
                           className="w-12 h-12 rounded-full object-cover"
                         />
@@ -493,7 +493,7 @@ function ListingDetailPage() {
                 </h2>
                 <div className="flex items-center space-x-3 mb-4">
                   <img
-                    src={listing.acceptedFixer.photoUrl}
+                    src={listing.acceptedFixer.photoUrl || `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/users/${listing.acceptedFixer._id || listing.acceptedFixer.id}/photo`}
                     alt={listing.acceptedFixer.name}
                     className="w-16 h-16 rounded-full object-cover border-2 border-green-500"
                   />

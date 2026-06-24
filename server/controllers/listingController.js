@@ -44,9 +44,10 @@ const getListings = async (req, res) => {
 const getListingById = async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id)
-      .populate('postedBy', 'name email photoUrl')
-      .populate('acceptedFixer', 'name email photoUrl skills')
-      .populate('interestedFixers.fixer', 'name email photoUrl rating fixesCompleted skills badges');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email')
+      .populate('acceptedFixer', 'name email skills')
+      .populate('interestedFixers.fixer', 'name email rating fixesCompleted skills badges');
 
     if (listing) {
       res.json(listing);
@@ -74,7 +75,8 @@ const createListing = async (req, res) => {
     });
 
     const populatedListing = await Listing.findById(listing._id)
-      .populate('postedBy', 'name email photoUrl');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email');
 
     res.status(201).json(populatedListing);
   } catch (error) {
@@ -109,7 +111,8 @@ const updateListing = async (req, res) => {
     const updatedListing = await listing.save();
 
     const populatedListing = await Listing.findById(updatedListing._id)
-      .populate('postedBy', 'name email photoUrl');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email');
 
     res.json(populatedListing);
   } catch (error) {
@@ -175,8 +178,9 @@ const addInterestedFixer = async (req, res) => {
     await listing.save();
 
     const updatedListing = await Listing.findById(listing._id)
-      .populate('postedBy', 'name email photoUrl')
-      .populate('interestedFixers.fixer', 'name email photoUrl rating fixesCompleted skills badges');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email')
+      .populate('interestedFixers.fixer', 'name email rating fixesCompleted skills badges');
 
     res.json(updatedListing);
   } catch (error) {
@@ -273,9 +277,10 @@ const acceptFixer = async (req, res) => {
     await listing.save();
 
     const updatedListing = await Listing.findById(listing._id)
-      .populate('postedBy', 'name email photoUrl')
-      .populate('acceptedFixer', 'name email photoUrl skills')
-      .populate('interestedFixers.fixer', 'name email photoUrl rating fixesCompleted skills badges');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email')
+      .populate('acceptedFixer', 'name email skills')
+      .populate('interestedFixers.fixer', 'name email rating fixesCompleted skills badges');
 
     res.json(updatedListing);
   } catch (error) {
@@ -322,9 +327,10 @@ const markListingFixed = async (req, res) => {
     }
 
     const updatedListing = await Listing.findById(listing._id)
-      .populate('postedBy', 'name email photoUrl')
-      .populate('acceptedFixer', 'name email photoUrl skills rating fixesCompleted')
-      .populate('interestedFixers.fixer', 'name email photoUrl rating fixesCompleted skills badges');
+      .select('-photoUrl')
+      .populate('postedBy', 'name email')
+      .populate('acceptedFixer', 'name email skills rating fixesCompleted')
+      .populate('interestedFixers.fixer', 'name email rating fixesCompleted skills badges');
 
     res.json(updatedListing);
   } catch (error) {
