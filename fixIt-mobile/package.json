@@ -1,0 +1,21 @@
+{
+  "name": "fixit-mobile",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build:web": "cd .. && npx vite build --config vite.config.mobile.js",
+    "sync": "npx cap sync android",
+    "build:apk": "cd android && ANDROID_HOME=$HOME/Android/Sdk ANDROID_SDK_ROOT=$HOME/Android/Sdk ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../FixIt-debug.apk",
+    "rebuild": "npm run build:web && npm run sync && npm run build:apk",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1"
+  }
+}
